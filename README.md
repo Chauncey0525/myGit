@@ -68,6 +68,14 @@ python import_emperor.py
 python import_emperor.py --dry-run --excel "C:\path\to\皇帝排行榜3.0修订版.xlsx"
 ```
 
+## 导出为 Excel
+
+将数据库中的 `emperor_rank` 整表导出为 Excel：
+
+```bash
+python export_emperor.py -o emperor_rank_export.xlsx
+```
+
 ## 启动网页
 
 ```bash
@@ -94,6 +102,7 @@ python app.py
 ├── app.py                      # Flask 后端
 ├── create_emperor_table.sql     # 建表 SQL
 ├── import_emperor.py            # Excel 导入脚本
+├── export_emperor.py            # 从数据库导出为 Excel
 ├── requirements.txt
 ├── templates/
 │   ├── index.html               # 排行榜页
