@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIY 排名 皇帝排行榜</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app diy-app">
+        <header class="header">
+            <h1>DIY 排名</h1>
+            <p class="subtitle">从左侧选择帝王，拖入右侧生成你的排行榜</p>
+            <a href="{{ url_for('index') }}" class="back-link">← 返回排行榜</a>
+        </header>
+
+        <div class="diy-layout">
+            <aside class="diy-left">
+                <h2>按朝代 帝王名单</h2>
+                <label class="diy-search-wrap">
+                    <input type="text" id="diy-search" placeholder="搜索姓名或庙谥称号" autocomplete="off">
+                </label>
+                <div class="diy-left-controls">
+                    <span>排序</span>
+                    <select id="diy-left-sort">
+                        <option value="era" selected>按朝代顺序</option>
+                        <option value="rank">按排行榜排序</option>
+                    </select>
+                </div>
+                <div id="era-list" class="era-list"></div>
+            </aside>
+            <main class="diy-right">
+                <h2>我的排行榜</h2>
+                <p class="diy-hint">将左侧帝王拖入此处，可拖动调整顺序</p>
+                <div class="diy-actions">
+                    <button type="button" id="diy-reset" class="diy-btn">重置</button>
+                    <button type="button" id="diy-save" class="diy-btn">保存</button>
+                </div>
+                <div class="diy-saved-wrap">
+                    <label class="diy-saved-label">已保存的排行榜</label>
+                    <div class="diy-saved-row">
+                        <select id="diy-saved-select">
+                            <option value="">请选择</option>
+                        </select>
+                        <button type="button" id="diy-load" class="diy-btn">加载</button>
+                        <button type="button" id="diy-delete" class="diy-btn diy-btn-secondary">删除</button>
+                    </div>
+                </div>
+                <div id="rank-drop" class="rank-drop">
+                    <ul id="rank-list" class="rank-list"></ul>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/diy.js') }}"></script>
+</body>
+</html>

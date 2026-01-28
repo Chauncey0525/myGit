@@ -1,0 +1,5 @@
+# 环境与密钥（勿提交密码）
+.env
+.env.local
+*.pyc
+__pycache__/

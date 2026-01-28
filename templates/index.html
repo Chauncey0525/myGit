@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>皇帝排行榜</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>皇帝排行榜</h1>
+            <p class="subtitle">多维度评分、可排序、可筛选</p>
+        </header>
+
+        <section class="controls">
+            <div class="control-row">
+                <label>
+                    <span>搜索</span>
+                    <input type="text" id="search" placeholder="姓名 / 时代 / 庙谥称号" autocomplete="off">
+                </label>
+                <label>
+                    <span>时代</span>
+                    <select id="era">
+                        <option value="">全部</option>
+                    </select>
+                </label>
+                <label>
+                    <span>每页</span>
+                    <select id="per_page">
+                        <option value="20">20</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
+                <div class="actions">
+                    <a href="{{ url_for('diy') }}" class="btn-diy" title="自建排行榜">DIY 排名</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="table-wrap">
+            <table class="rank-table" id="rank-table">
+                <thead>
+                    <tr>
+                        <th class="col-rank sortable" data-sort="overall_rank" title="点击正序/倒序">排名</th>
+                        <th class="col-era sortable" data-sort="era" title="点击正序/倒序">时代</th>
+                        <th class="col-title">庙/谥/称号</th>
+                        <th class="col-name">姓名</th>
+                        <th class="col-num sortable" data-sort="virtue" title="点击正序/倒序">德</th>
+                        <th class="col-num sortable" data-sort="wisdom" title="点击正序/倒序">智</th>
+                        <th class="col-num sortable" data-sort="fitness" title="点击正序/倒序">体</th>
+                        <th class="col-num sortable" data-sort="beauty" title="点击正序/倒序">美</th>
+                        <th class="col-num sortable" data-sort="diligence" title="点击正序/倒序">劳</th>
+                        <th class="col-num sortable" data-sort="ambition" title="点击正序/倒序">雄心</th>
+                        <th class="col-num sortable" data-sort="dignity" title="点击正序/倒序">尊严</th>
+                        <th class="col-num sortable" data-sort="magnanimity" title="点击正序/倒序">气量</th>
+                        <th class="col-num sortable" data-sort="desire_self_control" title="点击正序/倒序">欲望自控</th>
+                        <th class="col-num sortable" data-sort="personnel_management" title="点击正序/倒序">人事管理</th>
+                        <th class="col-num sortable" data-sort="national_power" title="点击正序/倒序">国力</th>
+                        <th class="col-num sortable" data-sort="military_diplomacy" title="点击正序/倒序">军事外交</th>
+                        <th class="col-num sortable" data-sort="public_support" title="点击正序/倒序">民心</th>
+                        <th class="col-num sortable" data-sort="economy_livelihood" title="点击正序/倒序">经济民生</th>
+                        <th class="col-num sortable" data-sort="historical_impact" title="点击正序/倒序">历史影响</th>
+                        <th class="col-score sortable" data-sort="overall_score" title="点击正序/倒序">综合评分</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                </tbody>
+            </table>
+        </section>
+
+        <section class="pagination" id="pagination">
+        </section>
+    </div>
+
+    <div class="modal" id="detail-modal" aria-hidden="true">
+        <div class="modal-backdrop" id="modal-backdrop"></div>
+        <div class="modal-content">
+            <button type="button" class="modal-close" id="modal-close" aria-label="关闭">&times;</button>
+            <div id="detail-body"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

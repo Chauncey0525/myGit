@@ -1,0 +1,577 @@
+/* 皇帝排行榜 - 样式 */
+:root {
+    --bg: #0f0f12;
+    --surface: #1a1a20;
+    --border: #2a2a32;
+    --text: #e8e8ec;
+    --muted: #8888a0;
+    --accent: #c9a227;
+    --accent-hover: #e0b83d;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+}
+
+.app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.header {
+    text-align: center;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.subtitle {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+.controls {
+    padding: 1rem 0;
+}
+
+.control-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+}
+
+.control-row label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.control-row label span {
+    color: var(--muted);
+    font-size: 0.85rem;
+    min-width: 2.2em;
+}
+
+.control-row input,
+.control-row select {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+}
+
+.control-row input:focus,
+.control-row select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.control-row input {
+    min-width: 160px;
+}
+
+.actions {
+    margin-left: auto;
+}
+
+.actions button {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.actions button:hover {
+    background: var(--border);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.actions .btn-diy {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.actions .btn-diy:hover {
+    background: var(--border);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.table-wrap {
+    overflow-x: auto;
+    margin: 1rem 0;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.rank-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.rank-table th,
+.rank-table td {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.rank-table th {
+    background: rgba(0,0,0,0.2);
+    color: var(--muted);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.rank-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.rank-table th.sortable:hover {
+    color: var(--accent);
+}
+
+.rank-table th.sort-asc::after {
+    content: " ↑";
+    color: var(--accent);
+    font-weight: normal;
+}
+
+.rank-table th.sort-desc::after {
+    content: " ↓";
+    color: var(--accent);
+    font-weight: normal;
+}
+
+.rank-table tbody tr {
+    cursor: pointer;
+}
+
+.rank-table tbody tr:hover {
+    background: rgba(201, 162, 39, 0.08);
+}
+
+.rank-table tbody tr.dragging {
+    opacity: 0.5;
+    background: rgba(201, 162, 39, 0.15);
+}
+
+.rank-table tbody tr.drag-over {
+    border-top: 2px solid var(--accent);
+}
+
+.col-drag {
+    width: 2rem;
+    cursor: grab;
+    color: var(--muted);
+    user-select: none;
+}
+
+.col-drag:active {
+    cursor: grabbing;
+}
+
+.col-rank { width: 4rem; }
+.col-era { width: 5rem; }
+.col-title { min-width: 6rem; }
+.col-name { min-width: 5rem; }
+.col-num { width: 4rem; min-width: 3.5rem; text-align: right; }
+.col-score { width: 5rem; text-align: right; }
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+}
+
+.pagination button {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.pagination button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.page-info {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+/* 详情模态框 */
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0.2s, opacity 0.2s;
+}
+
+.modal.open {
+    visibility: visible;
+    opacity: 1;
+}
+
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+}
+
+.modal-content {
+    position: relative;
+    max-width: 480px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.modal-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.modal-close:hover {
+    color: var(--text);
+    background: var(--border);
+}
+
+.detail-dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.35rem 1.5rem;
+    margin: 0;
+}
+
+.detail-dl dt {
+    margin: 0;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.detail-dl dd {
+    margin: 0;
+}
+
+/* DIY 排名页 */
+.diy-app .header { position: relative; }
+.back-link {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+.back-link:hover { color: var(--accent); }
+
+.diy-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    min-height: 60vh;
+}
+
+.diy-left, .diy-right {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.diy-left h2, .diy-right h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+    color: var(--muted);
+}
+
+.diy-search-wrap {
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.diy-search-wrap input {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.9rem;
+}
+
+.diy-search-wrap input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.diy-left-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.diy-left-controls span {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.diy-left-controls select {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.85rem;
+    min-width: 120px;
+}
+
+.diy-left-controls select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.diy-hint {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.diy-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.diy-btn {
+    padding: 0.35rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.diy-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.diy-btn-secondary {
+    color: var(--muted);
+}
+
+.diy-btn-secondary:hover {
+    color: var(--accent);
+}
+
+.diy-saved-wrap {
+    margin-bottom: 0.75rem;
+}
+
+.diy-saved-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+}
+
+.diy-saved-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.diy-saved-row select {
+    flex: 1;
+    min-width: 0;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.85rem;
+}
+
+.era-list {
+    overflow-y: auto;
+    flex: 1;
+}
+
+.era-list.drag-over {
+    outline: 2px dashed var(--accent);
+    outline-offset: 4px;
+    background: rgba(201, 162, 39, 0.06);
+}
+
+.era-section {
+    margin-bottom: 1rem;
+}
+
+.era-section:last-child { margin-bottom: 0; }
+
+.era-title {
+    margin: 0 0 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.emperor-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.emperor-item {
+    padding: 0.4rem 0.6rem;
+    margin-bottom: 2px;
+    border-radius: 4px;
+    cursor: grab;
+    font-size: 0.9rem;
+    background: rgba(0,0,0,0.2);
+}
+
+.emperor-item:hover {
+    background: rgba(201, 162, 39, 0.15);
+}
+
+.emperor-item.dragging {
+    opacity: 0.6;
+}
+
+.emperor-item:active { cursor: grabbing; }
+
+.rank-drop {
+    flex: 1;
+    min-height: 200px;
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 0.5rem;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.rank-drop.drag-over {
+    border-color: var(--accent);
+    background: rgba(201, 162, 39, 0.08);
+}
+
+.rank-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.rank-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.2);
+    cursor: grab;
+    font-size: 0.9rem;
+}
+
+.rank-item:hover {
+    background: rgba(201, 162, 39, 0.12);
+}
+
+.rank-item.dragging { opacity: 0.6; }
+.rank-item.drag-over { border-left: 3px solid var(--accent); }
+
+.rank-num {
+    min-width: 2rem;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.rank-name { flex: 1; }
+
+@media (max-width: 640px) {
+    .control-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .actions { margin-left: 0; }
+    .rank-table th,
+    .rank-table td {
+        padding: 0.5rem;
+        font-size: 0.85rem;
+    }
+    .diy-layout {
+        grid-template-columns: 1fr;
+    }
+    .back-link { position: static; transform: none; display: inline-block; margin-top: 0.5rem; }
+}
