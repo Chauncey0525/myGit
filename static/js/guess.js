@@ -8,8 +8,7 @@
     const $result = document.getElementById("guess-result");
     const $difficulty = document.getElementById("difficulty");
     const $btnStart = document.getElementById("btn-start");
-    const $hintLabel = document.getElementById("hint-label");
-    const $hintValue = document.getElementById("hint-value");
+    const $hintList = document.getElementById("hint-list");
     const $guessesNum = document.getElementById("guesses-num");
     const $guessInput = document.getElementById("guess-input");
     const $btnGuess = document.getElementById("btn-guess");
@@ -59,8 +58,22 @@
         $result.style.display = which === "result" ? "block" : "none";
     }
 
+    function renderHints(hints) {
+        if (!$hintList) return;
+        if (!hints || !hints.length) {
+            $hintList.innerHTML = "<span class=\"hint-chip muted\">暂无提示</span>";
+            return;
+        }
+        var html = "";
+        hints.forEach(function (h) {
+            var val = (h.value != null && h.value !== "") ? Number(h.value).toFixed(1) : "—";
+            html += "<span class=\"hint-chip\"><span class=\"hint-chip-label\">" + (h.label || h.field) + "</span><span class=\"hint-chip-val\">" + val + "</span></span>";
+        });
+        $hintList.innerHTML = html;
+    }
+
     function startGame() {
-        const difficulty = parseInt($difficulty.value, 10);
+        const difficulty = $difficulty.value;
         hideToast();
         if ($btnStart) { $btnStart.disabled = true; $btnStart.textContent = "加载中..."; }
         fetch(API + "/guess/start?difficulty=" + difficulty)
@@ -70,8 +83,7 @@
                     showToast(res.error, startGame);
                     return;
                 }
-                $hintLabel.textContent = res.hint.label;
-                $hintValue.textContent = res.hint.value != null && res.hint.value !== "" ? Number(res.hint.value).toFixed(1) : "—";
+                renderHints(res.hints || []);
                 $guessesNum.textContent = res.total_guesses;
                 $guessesNum.setAttribute("data-total", String(res.total_guesses));
                 $comparisonHistory.innerHTML = "";
@@ -157,7 +169,7 @@
                 });
                 table += "</tbody></table>";
                 round.innerHTML += table;
-                $comparisonHistory.appendChild(round);
+                $comparisonHistory.insertBefore(round, $comparisonHistory.firstChild);
                 $guessInput.value = "";
                 $guessInput.focus();
 

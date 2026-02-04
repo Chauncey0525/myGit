@@ -118,6 +118,41 @@ SORT_FIELDS = {
     "overall_score",
 }
 
+# 多指标排序：解析 sort=field1,field2&order=asc,desc，返回 (order_clause, order_params)
+def _parse_multi_sort(sort_str, order_str):
+    sort_list = [s.strip() for s in (sort_str or "").split(",") if s.strip()]
+    sort_list = [s for s in sort_list if s in SORT_FIELDS][:10]
+    if not sort_list:
+        sort_list = ["overall_rank"]
+    order_list = [o.strip().lower() for o in (order_str or "asc").split(",") if o.strip()]
+    if len(order_list) == 1 and order_list[0] in ("asc", "desc"):
+        order_list = [order_list[0]] * len(sort_list)
+    else:
+        order_list = [(o if o in ("asc", "desc") else "asc") for o in order_list[: len(sort_list)]]
+    while len(order_list) < len(sort_list):
+        order_list.append("asc")
+    order_parts = []
+    order_params = []
+    for i, sf in enumerate(sort_list):
+        ord_dir = order_list[i]
+        if sf == "era":
+            placeholders = ", ".join("%s" for _ in ERA_ORDER)
+            if ord_dir == "asc":
+                order_parts.append(
+                    f"(FIELD(era, {placeholders}) = 0), FIELD(era, {placeholders}) ASC"
+                )
+                order_params.extend(ERA_ORDER)
+                order_params.extend(ERA_ORDER)
+            else:
+                order_parts.append(f"FIELD(era, {placeholders}) DESC")
+                order_params.extend(ERA_ORDER)
+        else:
+            order_sql = "ASC" if ord_dir == "asc" else "DESC"
+            order_parts.append(f"`{sf}` IS NULL, `{sf}` {order_sql}")
+    order_clause = "ORDER BY " + ", ".join(order_parts)
+    return order_clause, order_params
+
+
 # 时代排序用：按朝代先后，与前端 ERA_ORDER 一致
 ERA_ORDER = [
     "秦", "西汉", "新", "东汉", "成汉", "曹魏", "蜀汉", "孙吴", "西晋", "前赵", "前燕", "前凉",
@@ -204,9 +239,25 @@ def _is_valid_score(val):
 
 @app.route("/api/guess/start", methods=["GET"])
 def api_guess_start():
-    """开始一局猜猜乐：随机选一名皇帝、随机一项有有效数值的评分作为提示，难度=可猜次数。"""
-    difficulty = request.args.get("difficulty", 5, type=int)
-    difficulty = max(1, min(20, difficulty))
+    """开始一局猜猜乐：按难度设置可猜次数与初始提示数量。"""
+    difficulty_raw = request.args.get("difficulty", "medium")
+    DIFFICULTY_PRESETS = {
+        "easy": {"guesses": 15, "hint_count": "all"},
+        "medium": {"guesses": 10, "hint_count": 8},
+        "hard": {"guesses": 5, "hint_count": 4},
+        "hell": {"guesses": 3, "hint_count": 1},
+    }
+    # 兼容旧数字参数：15/10/5/3
+    if isinstance(difficulty_raw, str) and difficulty_raw.isdigit():
+        d_map = {"15": "easy", "10": "medium", "5": "hard", "3": "hell"}
+        difficulty_key = d_map.get(difficulty_raw, "medium")
+    else:
+        difficulty_key = str(difficulty_raw).lower()
+        if difficulty_key not in DIFFICULTY_PRESETS:
+            difficulty_key = "medium"
+    preset = DIFFICULTY_PRESETS[difficulty_key]
+    total_guesses = preset["guesses"]
+    hint_count = preset["hint_count"]
     try:
         conn, cursor_factory = get_connection()
         cur = cursor_factory(conn)
@@ -230,14 +281,22 @@ def api_guess_start():
                 except (TypeError, ValueError):
                     overall_zero = True
                 if valid_hint_fields and not overall_zero:
-                    hint_field = random.choice(valid_hint_fields)
-                    hint_val = answer.get(hint_field)
+                    if hint_count == "all":
+                        chosen_fields = valid_hint_fields
+                    else:
+                        take = min(len(valid_hint_fields), int(hint_count) if isinstance(hint_count, int) else 1)
+                        chosen_fields = random.sample(valid_hint_fields, take)
+                    hints = [{
+                        "field": hf,
+                        "label": GUESS_FIELD_LABELS.get(hf, hf),
+                        "value": answer.get(hf),
+                    } for hf in chosen_fields]
                     session["guess_answer"] = answer
-                    session["guess_guesses_left"] = difficulty
-                    session["guess_hint_field"] = hint_field
+                    session["guess_guesses_left"] = total_guesses
+                    session["guess_hint_field"] = chosen_fields[0] if chosen_fields else None
                     return jsonify({
-                        "hint": {"field": hint_field, "label": GUESS_FIELD_LABELS[hint_field], "value": hint_val},
-                        "total_guesses": difficulty,
+                        "hints": hints,
+                        "total_guesses": total_guesses,
                     })
         finally:
             cur.close()
@@ -410,32 +469,15 @@ def api_guess_names():
 
 @app.route("/api/emperors", methods=["GET"])
 def api_emperors():
-    """GET /api/emperors?page=1&per_page=50&sort=overall_score&order=desc&era=唐&search=李世民"""
+    """GET /api/emperors?page=1&per_page=50&sort=overall_score&order=desc 或 sort=virtue,wisdom,fitness&order=desc,asc,desc"""
     page = max(1, request.args.get("page", 1, type=int))
     per_page = min(100, max(1, request.args.get("per_page", 50, type=int)))
     sort = request.args.get("sort", "overall_rank")
-    order = request.args.get("order", "asc").lower()
+    order = request.args.get("order", "asc")
     era = request.args.get("era", "").strip()
     search = request.args.get("search", "").strip()
 
-    if sort not in SORT_FIELDS:
-        sort = "overall_rank"
-    if order not in ("asc", "desc"):
-        order = "asc"
-    # 时代按朝代顺序：升序=秦→清，降序=清→秦；未在列表中的时代排在最后
-    order_params = []
-    if sort == "era":
-        placeholders = ", ".join("%s" for _ in ERA_ORDER)
-        if order == "asc":
-            order_clause = f"ORDER BY (FIELD(era, {placeholders}) = 0), FIELD(era, {placeholders}) ASC"
-            order_params = list(ERA_ORDER) + list(ERA_ORDER)
-        else:
-            order_clause = f"ORDER BY FIELD(era, {placeholders}) DESC"
-            order_params = list(ERA_ORDER)
-    else:
-        # 数字字段：NULL（前端显示为 -）统一放最后，只按数字排，避免倒序时 "-" 排前面
-        order_sql = "ASC" if order == "asc" else "DESC"
-        order_clause = f"ORDER BY `{sort}` IS NULL, `{sort}` {order_sql}"
+    order_clause, order_params = _parse_multi_sort(sort, order)
 
     where_clauses = []
     params = []
@@ -486,25 +528,10 @@ def api_emperors():
 def _emperors_where_order():
     """与 api_emperors 一致的筛选与排序，返回 (where_sql, order_clause, params, order_params)。"""
     sort = request.args.get("sort", "overall_rank")
-    order = request.args.get("order", "asc").lower()
+    order = request.args.get("order", "asc")
     era = request.args.get("era", "").strip()
     search = request.args.get("search", "").strip()
-    if sort not in SORT_FIELDS:
-        sort = "overall_rank"
-    if order not in ("asc", "desc"):
-        order = "asc"
-    order_params = []
-    if sort == "era":
-        placeholders = ", ".join("%s" for _ in ERA_ORDER)
-        if order == "asc":
-            order_clause = f"ORDER BY (FIELD(era, {placeholders}) = 0), FIELD(era, {placeholders}) ASC"
-            order_params = list(ERA_ORDER) + list(ERA_ORDER)
-        else:
-            order_clause = f"ORDER BY FIELD(era, {placeholders}) DESC"
-            order_params = list(ERA_ORDER)
-    else:
-        order_sql = "ASC" if order == "asc" else "DESC"
-        order_clause = f"ORDER BY `{sort}` IS NULL, `{sort}` {order_sql}"
+    order_clause, order_params = _parse_multi_sort(sort, order)
     where_clauses = []
     params = []
     if era:

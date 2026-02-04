@@ -13,15 +13,16 @@
     const COL_KEYS = ["overall_rank", "era", "temple_posthumous_title", "name"].concat(SCORE_KEYS).concat(["overall_score"]);
     const COL_LABELS = { overall_rank: "排名", era: "时代", temple_posthumous_title: "庙/谥/称号", name: "姓名", virtue: "德", wisdom: "智", fitness: "体", beauty: "美", diligence: "劳", ambition: "雄心", dignity: "尊严", magnanimity: "气量", desire_self_control: "欲望自控", personnel_management: "人事管理", national_power: "国力", military_diplomacy: "军事外交", public_support: "民心", economy_livelihood: "经济民生", historical_impact: "历史影响", overall_score: "综合评分" };
     const COLSPAN = 4 + SCORE_KEYS.length + 1;
-    const COLS_STORAGE_KEY = "rank_visible_cols";
+    const SORT_LEVELS_KEY = "rank_multi_sort";
+    const SORTABLE_FIELDS = ["overall_rank", "era", "virtue", "wisdom", "fitness", "beauty", "diligence", "ambition", "dignity", "magnanimity", "desire_self_control", "personnel_management", "national_power", "military_diplomacy", "public_support", "economy_livelihood", "historical_impact", "overall_score"];
+    const MAX_SORT_LEVELS = 5;
 
     const $tbody = document.getElementById("tbody");
     const $pagination = document.getElementById("pagination");
     const $search = document.getElementById("search");
     const $era = document.getElementById("era");
     const $perPage = document.getElementById("per_page");
-    let sortField = "overall_rank";
-    let sortOrder = "asc";
+    let multiSort = [{ field: "overall_rank", order: "asc" }];
     const $detailModal = document.getElementById("detail-modal");
     const $detailBody = document.getElementById("detail-body");
     const $modalClose = document.getElementById("modal-close");
@@ -34,41 +35,28 @@
     const $colsModal = document.getElementById("cols-modal");
     const $colsModalBackdrop = document.getElementById("cols-modal-backdrop");
     const $colsModalClose = document.getElementById("cols-modal-close");
-    const $colsCheckboxes = document.getElementById("cols-checkboxes");
+    const $sortLevels = document.getElementById("sort-levels");
+    const $sortApply = document.getElementById("sort-apply");
 
-    function getVisibleCols() {
+    function getMultiSort() {
         try {
-            var raw = localStorage.getItem(COLS_STORAGE_KEY);
-            if (!raw) return null;
-            var o = JSON.parse(raw);
-            return o;
-        } catch (e) { return null; }
+            var raw = localStorage.getItem(SORT_LEVELS_KEY);
+            if (raw) {
+                var arr = JSON.parse(raw);
+                if (Array.isArray(arr) && arr.length) return arr;
+            }
+        } catch (e) {}
+        return [{ field: "overall_rank", order: "asc" }];
     }
 
-    function setVisibleCols(visible) {
-        try { localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(visible)); } catch (e) {}
+    function setMultiSort(arr) {
+        multiSort = arr.filter(function (x) { return x && x.field; });
+        if (!multiSort.length) multiSort = [{ field: "overall_rank", order: "asc" }];
+        try { localStorage.setItem(SORT_LEVELS_KEY, JSON.stringify(multiSort)); } catch (e) {}
     }
 
-    function getVisibleColsOrDefault() {
-        var v = getVisibleCols();
-        if (v && typeof v === "object") {
-            var out = {};
-            COL_KEYS.forEach(function (k) { out[k] = v[k] !== false; });
-            return out;
-        }
-        var out = {};
-        COL_KEYS.forEach(function (k) { out[k] = true; });
-        return out;
-    }
-
-    function applyVisibleCols() {
-        var visible = getVisibleColsOrDefault();
-        COL_KEYS.forEach(function (col) {
-            var show = visible[col];
-            document.querySelectorAll("#rank-table [data-col=\"" + col + "\"]").forEach(function (el) {
-                el.style.display = show ? "" : "none";
-            });
-        });
+    function initMultiSortFromStorage() {
+        multiSort = getMultiSort();
     }
 
     function renderTable(rows) {
@@ -87,7 +75,6 @@
             $tbody.appendChild(tr);
         });
         updateSortIndicator();
-        applyVisibleCols();
     }
 
     function showRankToast(msg) {
@@ -105,8 +92,10 @@
         const params = new URLSearchParams();
         params.set("page", String(currentPage));
         params.set("per_page", String(perPage));
-        params.set("sort", sortField);
-        params.set("order", sortOrder);
+        const sortFields = multiSort.map(function (x) { return x.field; });
+        const sortOrders = multiSort.map(function (x) { return x.order; });
+        params.set("sort", sortFields.join(","));
+        params.set("order", sortOrders.join(","));
         const era = $era.value.trim();
         if (era) params.set("era", era);
         const search = $search.value.trim();
@@ -116,8 +105,10 @@
 
     function getExportQuery() {
         const params = new URLSearchParams();
-        params.set("sort", sortField);
-        params.set("order", sortOrder);
+        const sortFields = multiSort.map(function (x) { return x.field; });
+        const sortOrders = multiSort.map(function (x) { return x.order; });
+        params.set("sort", sortFields.join(","));
+        params.set("order", sortOrders.join(","));
         const era = $era.value.trim();
         if (era) params.set("era", era);
         const search = $search.value.trim();
@@ -153,9 +144,12 @@
         hideRankToast();
         $tbody.innerHTML = "<tr><td colspan=\"" + COLSPAN + "\" class=\"rank-loading\">加载中...</td></tr>";
         const q = getQuery();
-        fetch(API + "/emperors?" + q)
+        var controller = new AbortController();
+        var timeoutId = setTimeout(function () { controller.abort(); }, 15000);
+        fetch(API + "/emperors?" + q, { signal: controller.signal })
             .then(function (r) { return r.json(); })
             .then(function (res) {
+                clearTimeout(timeoutId);
                 if (res.error) {
                     $tbody.innerHTML = "<tr><td colspan=\"" + COLSPAN + "\">" + res.error + "</td></tr>";
                     showRankToast(res.error);
@@ -169,9 +163,9 @@
                     renderTable(allEmperors);
                 }
                 renderPagination();
-                applyVisibleCols();
             })
             .catch(function (err) {
+                clearTimeout(timeoutId);
                 $tbody.innerHTML = "<tr><td colspan=\"" + COLSPAN + "\">加载失败</td></tr>";
                 showRankToast("加载失败");
             });
@@ -200,32 +194,60 @@
     }
 
     function updateSortIndicator() {
+        var primary = multiSort[0];
         document.querySelectorAll("#rank-table thead th.sortable").forEach(function (th) {
             th.classList.remove("sort-asc", "sort-desc");
-            if (th.dataset.sort === sortField) th.classList.add(sortOrder === "asc" ? "sort-asc" : "sort-desc");
+            if (primary && th.dataset.sort === primary.field) th.classList.add(primary.order === "asc" ? "sort-asc" : "sort-desc");
         });
     }
 
-    function openColsModal() {
-        var visible = getVisibleColsOrDefault();
-        $colsCheckboxes.innerHTML = "";
-        COL_KEYS.forEach(function (col) {
-            var label = document.createElement("label");
-            label.className = "cols-check-label";
-            var cb = document.createElement("input");
-            cb.type = "checkbox";
-            cb.checked = visible[col];
-            cb.dataset.col = col;
-            cb.addEventListener("change", function () {
-                visible[col] = cb.checked;
-                setVisibleCols(visible);
-                applyVisibleCols();
+    function openSortModal() {
+        var current = getMultiSort().slice();
+        while (current.length < MAX_SORT_LEVELS) current.push({ field: "", order: "desc" });
+        if (!$sortLevels) return;
+        $sortLevels.innerHTML = "";
+        for (var i = 0; i < MAX_SORT_LEVELS; i++) {
+            var row = document.createElement("div");
+            row.className = "sort-level-row";
+            var sel = document.createElement("select");
+            sel.dataset.level = String(i);
+            sel.dataset.kind = "field";
+            sel.innerHTML = "<option value=\"\">— 不选 —</option>";
+            SORTABLE_FIELDS.forEach(function (f) {
+                var opt = document.createElement("option");
+                opt.value = f;
+                opt.textContent = COL_LABELS[f] || f;
+                if (current[i] && current[i].field === f) opt.selected = true;
+                sel.appendChild(opt);
             });
-            label.appendChild(cb);
-            label.appendChild(document.createTextNode(" " + (COL_LABELS[col] || col)));
-            $colsCheckboxes.appendChild(label);
-        });
+            var orderSel = document.createElement("select");
+            orderSel.dataset.level = String(i);
+            orderSel.dataset.kind = "order";
+            orderSel.innerHTML = "<option value=\"asc\">升序</option><option value=\"desc\">降序</option>";
+            orderSel.value = (current[i] && current[i].order) || "desc";
+            var label = document.createElement("label");
+            label.className = "sort-level-label";
+            label.textContent = "第 " + (i + 1) + " 级";
+            row.appendChild(label);
+            row.appendChild(sel);
+            row.appendChild(orderSel);
+            $sortLevels.appendChild(row);
+        }
         if ($colsModal) { $colsModal.setAttribute("aria-hidden", "false"); $colsModal.classList.add("open"); }
+    }
+
+    function applySortModal() {
+        var arr = [];
+        for (var i = 0; i < MAX_SORT_LEVELS; i++) {
+            var fieldEl = $sortLevels.querySelector("select[data-level=\"" + i + "\"][data-kind=\"field\"]");
+            var orderEl = $sortLevels.querySelector("select[data-level=\"" + i + "\"][data-kind=\"order\"]");
+            var field = fieldEl ? fieldEl.value.trim() : "";
+            if (field) arr.push({ field: field, order: (orderEl ? orderEl.value : "desc") || "desc" });
+        }
+        setMultiSort(arr.length ? arr : [{ field: "overall_rank", order: "asc" }]);
+        closeColsModal();
+        currentPage = 1;
+        loadEmperors();
     }
 
     function closeColsModal() {
@@ -345,12 +367,13 @@
     document.querySelectorAll("#rank-table thead th.sortable").forEach(function (th) {
         th.addEventListener("click", function () {
             const field = th.dataset.sort;
-            if (field === sortField) {
-                sortOrder = sortOrder === "asc" ? "desc" : "asc";
+            var primary = multiSort[0];
+            if (primary && primary.field === field) {
+                multiSort = [{ field: field, order: primary.order === "asc" ? "desc" : "asc" }];
             } else {
-                sortField = field;
-                sortOrder = (field === "overall_rank" || field === "era") ? "asc" : "desc";
+                multiSort = [{ field: field, order: (field === "overall_rank" || field === "era") ? "asc" : "desc" }];
             }
+            setMultiSort(multiSort);
             currentPage = 1;
             loadEmperors();
         });
@@ -374,10 +397,12 @@
         });
     }
 
-    if ($btnCols) $btnCols.addEventListener("click", openColsModal);
+    if ($btnCols) $btnCols.addEventListener("click", openSortModal);
     if ($colsModalClose) $colsModalClose.addEventListener("click", closeColsModal);
     if ($colsModalBackdrop) $colsModalBackdrop.addEventListener("click", closeColsModal);
+    if ($sortApply) $sortApply.addEventListener("click", applySortModal);
 
+    initMultiSortFromStorage();
     loadEras();
     loadEmperors();
 })();

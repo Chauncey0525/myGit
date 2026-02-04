@@ -3,6 +3,10 @@
     margin-bottom: 1rem;
 }
 
+.guess-app .header h1::after {
+    margin-top: 0.6rem;
+}
+
 .guess-stats {
     color: var(--muted);
     font-size: 0.9rem;
@@ -47,13 +51,14 @@
 .btn-guess,
 .btn-giveup,
 .btn-again {
-    padding: 0.5rem 1.2rem;
+    padding: 0.55rem 1.25rem;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius, 8px);
     background: var(--surface);
     color: var(--text);
     font-size: 1rem;
     cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.15s ease;
 }
 
 .btn-start:hover:not(:disabled),
@@ -61,11 +66,19 @@
 .btn-again:hover {
     border-color: var(--accent);
     color: var(--accent);
+    background: rgba(201, 162, 39, 0.08);
+}
+
+.btn-start:active:not(:disabled),
+.btn-guess:active:not(:disabled),
+.btn-again:active {
+    transform: scale(0.98);
 }
 
 .btn-giveup:hover {
     border-color: var(--muted);
     color: var(--muted);
+    background: rgba(136, 136, 160, 0.1);
 }
 
 .btn-again {
@@ -88,11 +101,12 @@
 }
 
 .hint-box {
-    padding: 1rem 1.25rem;
+    padding: 1.1rem 1.35rem;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius, 8px);
     margin-bottom: 1rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .hint-text {
@@ -103,6 +117,39 @@
 
 .hint-text strong {
     color: var(--accent);
+}
+
+.hint-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+
+.hint-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 6px);
+    background: rgba(201, 162, 39, 0.08);
+    color: var(--text);
+    font-size: 0.9rem;
+}
+
+.hint-chip-label {
+    color: var(--muted);
+}
+
+.hint-chip-val {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.hint-chip.muted {
+    background: var(--surface);
+    color: var(--muted);
 }
 
 .btn-hint {
@@ -148,17 +195,19 @@
 
 .guess-input-row input {
     min-width: 200px;
-    padding: 0.5rem 0.75rem;
+    padding: 0.55rem 0.8rem;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-sm, 6px);
     background: var(--surface);
     color: var(--text);
     font-size: 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .guess-input-row input:focus {
     outline: none;
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.15);
 }
 
 .comparison-history {
@@ -168,10 +217,11 @@
 }
 
 .guess-round {
-    padding: 1rem;
+    padding: 1rem 1.1rem;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius, 8px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 
 .guess-round-title {
@@ -245,12 +295,13 @@
 }
 
 .answer-card {
-    padding: 1rem;
+    padding: 1.1rem;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius, 8px);
     text-align: left;
     font-size: 0.95rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .answer-card dl {
@@ -281,6 +332,7 @@
 .guess-nav a {
     color: var(--muted);
     text-decoration: none;
+    transition: color 0.2s ease;
 }
 
 .guess-nav a:hover {

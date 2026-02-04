@@ -11,7 +11,7 @@
     <div class="app guess-app">
         <header class="header">
             <h1>皇帝猜猜乐</h1>
-            <p class="subtitle">根据一项评分猜皇帝，每次猜测会得到各维度对比（高了/低了/正确）</p>
+            <p class="subtitle">根据一项评分猜皇帝，每次猜测会得到各维度对比</p>
         </header>
 
         <div class="guess-toast" id="guess-toast" role="alert" aria-live="assertive" style="display: none;">
@@ -22,12 +22,12 @@
         <section class="guess-setup" id="guess-setup">
             <div class="control-row">
                 <label>
-                    <span>难度（可猜次数）</span>
+                    <span>难度</span>
                     <select id="difficulty">
-                        <option value="3">3 次（困难）</option>
-                        <option value="5" selected>5 次（中等）</option>
-                        <option value="8">8 次（简单）</option>
-                        <option value="12">12 次（轻松）</option>
+                        <option value="easy">简单（15 次 / 全部提示）</option>
+                        <option value="medium" selected>中等（10 次 / 8 个提示）</option>
+                        <option value="hard">困难（5 次 / 4 个提示）</option>
+                        <option value="hell">炼狱（3 次 / 1 个提示）</option>
                     </select>
                 </label>
                 <button type="button" class="btn-start" id="btn-start">开始游戏</button>
@@ -36,7 +36,8 @@
 
         <section class="guess-play" id="guess-play" style="display: none;">
             <div class="hint-box" id="hint-box">
-                <p class="hint-text">某皇帝的「<span id="hint-label"></span>」为 <strong id="hint-value"></strong></p>
+                <p class="hint-text">已知提示：</p>
+                <div class="hint-list" id="hint-list"></div>
             </div>
             <div class="guesses-left" id="guesses-left">剩余 <span id="guesses-num">0</span> 次</div>
             <div class="guess-input-row" id="guess-input-wrap">

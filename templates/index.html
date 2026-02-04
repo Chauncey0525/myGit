@@ -10,7 +10,6 @@
     <div class="app">
         <header class="header">
             <h1>皇帝排行榜</h1>
-            <p class="subtitle">多维度评分、可排序、可筛选</p>
         </header>
 
         <section class="controls">
@@ -28,13 +27,15 @@
                 <label>
                     <span>每页</span>
                     <select id="per_page">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
                         <option value="20">20</option>
                         <option value="50" selected>50</option>
                         <option value="100">100</option>
                     </select>
                 </label>
                 <div class="actions">
-                    <button type="button" class="btn-diy btn-export" id="btn-cols" title="显示/隐藏列">列设置</button>
+                    <button type="button" class="btn-diy btn-export" id="btn-cols" title="多级排序">多指标排序</button>
                     <button type="button" class="btn-diy btn-export" id="btn-export" title="按当前筛选导出 CSV">导出 CSV</button>
                     <a href="{{ url_for('guess') }}" class="btn-diy" title="皇帝猜猜乐">猜猜乐</a>
                     <a href="{{ url_for('diy') }}" class="btn-diy" title="自建排行榜">DIY 排名</a>
@@ -94,8 +95,12 @@
         <div class="modal-backdrop" id="cols-modal-backdrop"></div>
         <div class="modal-content modal-cols">
             <button type="button" class="modal-close" id="cols-modal-close" aria-label="关闭">&times;</button>
-            <h3 class="modal-title">显示列</h3>
-            <div id="cols-checkboxes" class="cols-checkboxes"></div>
+            <h3 class="modal-title">多指标排序</h3>
+            <p class="modal-desc">设置 1～5 级排序，同级相同时按下一级比较。留空表示不参与排序。</p>
+            <div id="sort-levels" class="sort-levels"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn-apply" id="sort-apply">应用并刷新</button>
+            </div>
         </div>
     </div>
 
