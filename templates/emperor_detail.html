@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if emperor %}{{ emperor.name or '皇帝' }} - 详情{% else %}皇帝详情{% endif %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>{% if emperor %}{{ emperor.name or '皇帝' }}{% else %}皇帝详情{% endif %}</h1>
+            <p class="subtitle"><a href="{{ url_for('index') }}">← 返回排行榜</a></p>
+        </header>
+
+        <section class="detail-page-wrap">
+            {% if error %}
+                <p class="detail-error">{{ error }}</p>
+            {% elif emperor %}
+                <dl class="detail-dl">
+                    {% set keys = ['overall_rank', 'era', 'temple_posthumous_title', 'name', 'short_comment',
+                        'virtue', 'wisdom', 'fitness', 'beauty', 'diligence', 'ambition', 'dignity', 'magnanimity',
+                        'desire_self_control', 'personnel_management', 'national_power', 'military_diplomacy',
+                        'public_support', 'economy_livelihood', 'historical_impact', 'overall_score'] %}
+                    {% set labels = {
+                        'overall_rank': '排名', 'era': '时代', 'temple_posthumous_title': '庙/谥/称号', 'name': '姓名',
+                        'short_comment': '短评', 'virtue': '德', 'wisdom': '智', 'fitness': '体', 'beauty': '美',
+                        'diligence': '劳', 'ambition': '雄心', 'dignity': '尊严', 'magnanimity': '气量',
+                        'desire_self_control': '欲望自控', 'personnel_management': '人事管理', 'national_power': '国力',
+                        'military_diplomacy': '军事外交', 'public_support': '民心', 'economy_livelihood': '经济民生',
+                        'historical_impact': '历史影响', 'overall_score': '综合评分'
+                    } %}
+                    {% for key in keys %}
+                        {% if emperor.get(key) is not none and emperor.get(key) != '' %}
+                            <dt>{{ labels.get(key, key) }}</dt>
+                            <dd>{% if key == 'overall_rank' %}{{ emperor[key] | int }}{% elif emperor[key] is number %}{{ "%.1f" | format(emperor[key] | float) }}{% else %}{{ emperor[key] }}{% endif %}</dd>
+                        {% endif %}
+                    {% endfor %}
+                </dl>
+            {% endif %}
+        </section>
+    </div>
+</body>
+</html>

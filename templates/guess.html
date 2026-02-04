@@ -14,6 +14,11 @@
             <p class="subtitle">根据一项评分猜皇帝，每次猜测会得到各维度对比（高了/低了/正确）</p>
         </header>
 
+        <div class="guess-toast" id="guess-toast" role="alert" aria-live="assertive" style="display: none;">
+            <span class="guess-toast-msg" id="guess-toast-msg"></span>
+            <button type="button" class="guess-toast-retry" id="guess-toast-retry">重试</button>
+        </div>
+
         <section class="guess-setup" id="guess-setup">
             <div class="control-row">
                 <label>

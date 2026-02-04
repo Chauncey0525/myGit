@@ -34,36 +34,43 @@
                     </select>
                 </label>
                 <div class="actions">
+                    <button type="button" class="btn-diy btn-export" id="btn-cols" title="显示/隐藏列">列设置</button>
+                    <button type="button" class="btn-diy btn-export" id="btn-export" title="按当前筛选导出 CSV">导出 CSV</button>
                     <a href="{{ url_for('guess') }}" class="btn-diy" title="皇帝猜猜乐">猜猜乐</a>
                     <a href="{{ url_for('diy') }}" class="btn-diy" title="自建排行榜">DIY 排名</a>
                 </div>
             </div>
         </section>
 
+        <div class="rank-toast" id="rank-toast" role="alert" style="display: none;">
+            <span class="rank-toast-msg" id="rank-toast-msg"></span>
+            <button type="button" class="rank-toast-retry" id="rank-toast-retry">重试</button>
+        </div>
+
         <section class="table-wrap">
             <table class="rank-table" id="rank-table">
                 <thead>
                     <tr>
-                        <th class="col-rank sortable" data-sort="overall_rank" title="点击正序/倒序">排名</th>
-                        <th class="col-era sortable" data-sort="era" title="点击正序/倒序">时代</th>
-                        <th class="col-title">庙/谥/称号</th>
-                        <th class="col-name">姓名</th>
-                        <th class="col-num sortable" data-sort="virtue" title="点击正序/倒序">德</th>
-                        <th class="col-num sortable" data-sort="wisdom" title="点击正序/倒序">智</th>
-                        <th class="col-num sortable" data-sort="fitness" title="点击正序/倒序">体</th>
-                        <th class="col-num sortable" data-sort="beauty" title="点击正序/倒序">美</th>
-                        <th class="col-num sortable" data-sort="diligence" title="点击正序/倒序">劳</th>
-                        <th class="col-num sortable" data-sort="ambition" title="点击正序/倒序">雄心</th>
-                        <th class="col-num sortable" data-sort="dignity" title="点击正序/倒序">尊严</th>
-                        <th class="col-num sortable" data-sort="magnanimity" title="点击正序/倒序">气量</th>
-                        <th class="col-num sortable" data-sort="desire_self_control" title="点击正序/倒序">欲望自控</th>
-                        <th class="col-num sortable" data-sort="personnel_management" title="点击正序/倒序">人事管理</th>
-                        <th class="col-num sortable" data-sort="national_power" title="点击正序/倒序">国力</th>
-                        <th class="col-num sortable" data-sort="military_diplomacy" title="点击正序/倒序">军事外交</th>
-                        <th class="col-num sortable" data-sort="public_support" title="点击正序/倒序">民心</th>
-                        <th class="col-num sortable" data-sort="economy_livelihood" title="点击正序/倒序">经济民生</th>
-                        <th class="col-num sortable" data-sort="historical_impact" title="点击正序/倒序">历史影响</th>
-                        <th class="col-score sortable" data-sort="overall_score" title="点击正序/倒序">综合评分</th>
+                        <th class="col-rank sortable" data-col="overall_rank" data-sort="overall_rank" title="点击正序/倒序">排名</th>
+                        <th class="col-era sortable" data-col="era" data-sort="era" title="点击正序/倒序">时代</th>
+                        <th class="col-title" data-col="temple_posthumous_title">庙/谥/称号</th>
+                        <th class="col-name" data-col="name">姓名</th>
+                        <th class="col-num sortable" data-col="virtue" data-sort="virtue" title="点击正序/倒序">德</th>
+                        <th class="col-num sortable" data-col="wisdom" data-sort="wisdom" title="点击正序/倒序">智</th>
+                        <th class="col-num sortable" data-col="fitness" data-sort="fitness" title="点击正序/倒序">体</th>
+                        <th class="col-num sortable" data-col="beauty" data-sort="beauty" title="点击正序/倒序">美</th>
+                        <th class="col-num sortable" data-col="diligence" data-sort="diligence" title="点击正序/倒序">劳</th>
+                        <th class="col-num sortable" data-col="ambition" data-sort="ambition" title="点击正序/倒序">雄心</th>
+                        <th class="col-num sortable" data-col="dignity" data-sort="dignity" title="点击正序/倒序">尊严</th>
+                        <th class="col-num sortable" data-col="magnanimity" data-sort="magnanimity" title="点击正序/倒序">气量</th>
+                        <th class="col-num sortable" data-col="desire_self_control" data-sort="desire_self_control" title="点击正序/倒序">欲望自控</th>
+                        <th class="col-num sortable" data-col="personnel_management" data-sort="personnel_management" title="点击正序/倒序">人事管理</th>
+                        <th class="col-num sortable" data-col="national_power" data-sort="national_power" title="点击正序/倒序">国力</th>
+                        <th class="col-num sortable" data-col="military_diplomacy" data-sort="military_diplomacy" title="点击正序/倒序">军事外交</th>
+                        <th class="col-num sortable" data-col="public_support" data-sort="public_support" title="点击正序/倒序">民心</th>
+                        <th class="col-num sortable" data-col="economy_livelihood" data-sort="economy_livelihood" title="点击正序/倒序">经济民生</th>
+                        <th class="col-num sortable" data-col="historical_impact" data-sort="historical_impact" title="点击正序/倒序">历史影响</th>
+                        <th class="col-score sortable" data-col="overall_score" data-sort="overall_score" title="点击正序/倒序">综合评分</th>
                     </tr>
                 </thead>
                 <tbody id="tbody">
@@ -80,6 +87,15 @@
         <div class="modal-content">
             <button type="button" class="modal-close" id="modal-close" aria-label="关闭">&times;</button>
             <div id="detail-body"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="cols-modal" aria-hidden="true">
+        <div class="modal-backdrop" id="cols-modal-backdrop"></div>
+        <div class="modal-content modal-cols">
+            <button type="button" class="modal-close" id="cols-modal-close" aria-label="关闭">&times;</button>
+            <h3 class="modal-title">显示列</h3>
+            <div id="cols-checkboxes" class="cols-checkboxes"></div>
         </div>
     </div>
 

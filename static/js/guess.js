@@ -18,6 +18,24 @@
     const $resultMessage = document.getElementById("result-message");
     const $answerCard = document.getElementById("answer-card");
     const $btnAgain = document.getElementById("btn-again");
+    const $toast = document.getElementById("guess-toast");
+    const $toastMsg = document.getElementById("guess-toast-msg");
+    const $toastRetry = document.getElementById("guess-toast-retry");
+
+    var lastRetryFn = null;
+
+    function showToast(msg, retryFn) {
+        if ($toast && $toastMsg) {
+            $toastMsg.textContent = msg || "请求失败";
+            $toast.style.display = "flex";
+        }
+        lastRetryFn = typeof retryFn === "function" ? retryFn : null;
+    }
+
+    function hideToast() {
+        if ($toast) $toast.style.display = "none";
+        lastRetryFn = null;
+    }
 
     function resultSymbol(res) {
         if (res === "high") return "↑";
@@ -43,22 +61,28 @@
 
     function startGame() {
         const difficulty = parseInt($difficulty.value, 10);
+        hideToast();
+        if ($btnStart) { $btnStart.disabled = true; $btnStart.textContent = "加载中..."; }
         fetch(API + "/guess/start?difficulty=" + difficulty)
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 if (res.error) {
-                    alert(res.error);
+                    showToast(res.error, startGame);
                     return;
                 }
                 $hintLabel.textContent = res.hint.label;
                 $hintValue.textContent = res.hint.value != null && res.hint.value !== "" ? Number(res.hint.value).toFixed(1) : "—";
                 $guessesNum.textContent = res.total_guesses;
+                $guessesNum.setAttribute("data-total", String(res.total_guesses));
                 $comparisonHistory.innerHTML = "";
                 $guessInput.value = "";
                 $guessInput.focus();
                 showScreen("play");
             })
-            .catch(function () { alert("请求失败"); });
+            .catch(function () { showToast("请求失败", startGame); })
+            .finally(function () {
+                if ($btnStart) { $btnStart.disabled = false; $btnStart.textContent = "开始游戏"; }
+            });
     }
 
     function fmtVal(v) {
@@ -113,13 +137,14 @@
             .then(function (res) {
                 btn.disabled = false;
                 if (res.error) {
-                    alert(res.error);
+                    showToast(res.error, submitGuess);
                     return;
                 }
                 if (!res.comparison || !Array.isArray(res.comparison)) {
-                    alert("返回数据异常，请重试");
+                    showToast("返回数据异常，请重试", submitGuess);
                     return;
                 }
+                hideToast();
                 $guessesNum.textContent = res.guesses_left;
                 var round = document.createElement("div");
                 round.className = "guess-round";
@@ -153,16 +178,17 @@
             })
             .catch(function (e) {
                 btn.disabled = false;
-                alert(e.message || "请求失败");
+                showToast(e.message || "请求失败", submitGuess);
             });
     }
 
     function giveUp() {
+        hideToast();
         fetch(API + "/guess/giveup", { method: "POST" })
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 if (res.error) {
-                    alert(res.error);
+                    showToast(res.error, giveUp);
                     return;
                 }
                 if (res.answer) {
@@ -172,7 +198,7 @@
                     showScreen("result");
                 }
             })
-            .catch(function () { alert("请求失败"); });
+            .catch(function () { showToast("请求失败", giveUp); });
     }
 
     $btnStart.addEventListener("click", startGame);
@@ -183,6 +209,14 @@
     });
     $btnAgain.addEventListener("click", function () {
         $guessInput.value = "";
+        hideToast();
         showScreen("setup");
     });
+
+    if ($toastRetry) {
+        $toastRetry.addEventListener("click", function () {
+            hideToast();
+            if (lastRetryFn) lastRetryFn();
+        });
+    }
 })();

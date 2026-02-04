@@ -88,13 +88,39 @@ python app.py
 
 - **排行榜页**（`/`）
   - 按时代筛选、关键字搜索
-  - 表头排序（排名、时代、各维度分数、综合评分）
-  - 点击行查看详情
+  - 表头排序（排名、时代、各维度分数、综合评分）；倒序时无评分（—）排在最后
+  - 分页：首页、上一页、下一页、尾页、跳至第 N 页
+  - 点击行查看详情（弹窗）；可设置显示/隐藏列
+  - 入口：猜猜乐、DIY 排名
 - **DIY 排名页**（`/diy`）
   - 左侧帝王名单：**双击**加入右侧榜单末尾，或**拖拽**加入
   - 右侧我的排行榜：**自由拖拽换位**调整顺序
   - 右侧条目：**双击移回左侧**，或**拖回左侧区域**
   - 支持重置、保存/加载/删除本地排行榜（localStorage）
+- **皇帝猜猜乐**（`/guess`）
+  - 根据一项随机评分猜皇帝；难度 = 可猜次数（3/5/8/12 次）
+  - 输入皇帝**姓名**或**谥/庙号**（谥庙号需精确匹配）提交猜测
+  - 每次猜测后展示各维度对比：猜的数值 + 符号（高了红↑、低了橘↓、正确绿√）
+  - **放弃**按钮可立即显示答案；猜中或次数用尽后显示答案，可「再玩一局」
+
+## API 接口（供前端调用）
+
+- `GET /api/emperors`：列表（分页、排序、时代筛选、搜索）
+- `GET /api/emperors/all`：全部帝王（供 DIY 左侧）
+- `GET /api/emperors/<rank>`：单条详情
+- `GET /api/eras`：时代列表
+- `GET /api/guess/start?difficulty=N`：开始一局猜猜乐
+- `POST /api/guess/guess`：提交猜测（body: `{ "guess": "姓名或谥庙号" }`）
+- `POST /api/guess/giveup`：放弃本局并返回答案
+- `GET /api/guess/names`：皇帝姓名列表（联想用）
+- `GET /api/emperors/export`：按当前筛选导出 CSV（query 参数同列表）
+
+## 运行测试
+
+```bash
+pip install pytest
+python -m pytest tests/ -v
+```
 
 ## 目录结构
 
@@ -104,13 +130,21 @@ python app.py
 ├── import_emperor.py            # Excel 导入脚本
 ├── export_emperor.py            # 从数据库导出为 Excel
 ├── requirements.txt
+├── tests/
+│   ├── __init__.py
+│   └── test_api.py              # pytest 关键接口与 _compare_value 等
 ├── templates/
-│   ├── index.html               # 排行榜页
-│   └── diy.html                 # DIY 页
+│   ├── index.html              # 排行榜页
+│   ├── diy.html                # DIY 页
+│   ├── guess.html              # 皇帝猜猜乐页
+│   └── emperor_detail.html     # 皇帝详情独立页（可分享链接）
 ├── static/
-│   ├── css/style.css
+│   ├── css/
+│   │   ├── style.css           # 排行榜/DIY 共用
+│   │   └── guess.css           # 猜猜乐页
 │   └── js/
-│       ├── main.js              # 排行榜页脚本
-│       └── diy.js               # DIY 页脚本
+│       ├── main.js             # 排行榜页脚本
+│       ├── diy.js              # DIY 页脚本
+│       └── guess.js            # 猜猜乐页脚本
 └── README.md
 ```

@@ -10,7 +10,10 @@
     let allEmperors = [];
 
     const SCORE_KEYS = ["virtue", "wisdom", "fitness", "beauty", "diligence", "ambition", "dignity", "magnanimity", "desire_self_control", "personnel_management", "national_power", "military_diplomacy", "public_support", "economy_livelihood", "historical_impact"];
+    const COL_KEYS = ["overall_rank", "era", "temple_posthumous_title", "name"].concat(SCORE_KEYS).concat(["overall_score"]);
+    const COL_LABELS = { overall_rank: "排名", era: "时代", temple_posthumous_title: "庙/谥/称号", name: "姓名", virtue: "德", wisdom: "智", fitness: "体", beauty: "美", diligence: "劳", ambition: "雄心", dignity: "尊严", magnanimity: "气量", desire_self_control: "欲望自控", personnel_management: "人事管理", national_power: "国力", military_diplomacy: "军事外交", public_support: "民心", economy_livelihood: "经济民生", historical_impact: "历史影响", overall_score: "综合评分" };
     const COLSPAN = 4 + SCORE_KEYS.length + 1;
+    const COLS_STORAGE_KEY = "rank_visible_cols";
 
     const $tbody = document.getElementById("tbody");
     const $pagination = document.getElementById("pagination");
@@ -23,11 +26,96 @@
     const $detailBody = document.getElementById("detail-body");
     const $modalClose = document.getElementById("modal-close");
     const $modalBackdrop = document.getElementById("modal-backdrop");
+    const $rankToast = document.getElementById("rank-toast");
+    const $rankToastMsg = document.getElementById("rank-toast-msg");
+    const $rankToastRetry = document.getElementById("rank-toast-retry");
+    const $btnExport = document.getElementById("btn-export");
+    const $btnCols = document.getElementById("btn-cols");
+    const $colsModal = document.getElementById("cols-modal");
+    const $colsModalBackdrop = document.getElementById("cols-modal-backdrop");
+    const $colsModalClose = document.getElementById("cols-modal-close");
+    const $colsCheckboxes = document.getElementById("cols-checkboxes");
+
+    function getVisibleCols() {
+        try {
+            var raw = localStorage.getItem(COLS_STORAGE_KEY);
+            if (!raw) return null;
+            var o = JSON.parse(raw);
+            return o;
+        } catch (e) { return null; }
+    }
+
+    function setVisibleCols(visible) {
+        try { localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(visible)); } catch (e) {}
+    }
+
+    function getVisibleColsOrDefault() {
+        var v = getVisibleCols();
+        if (v && typeof v === "object") {
+            var out = {};
+            COL_KEYS.forEach(function (k) { out[k] = v[k] !== false; });
+            return out;
+        }
+        var out = {};
+        COL_KEYS.forEach(function (k) { out[k] = true; });
+        return out;
+    }
+
+    function applyVisibleCols() {
+        var visible = getVisibleColsOrDefault();
+        COL_KEYS.forEach(function (col) {
+            var show = visible[col];
+            document.querySelectorAll("#rank-table [data-col=\"" + col + "\"]").forEach(function (el) {
+                el.style.display = show ? "" : "none";
+            });
+        });
+    }
+
+    function renderTable(rows) {
+        $tbody.innerHTML = "";
+        rows.forEach(function (emp) {
+            const tr = document.createElement("tr");
+            tr.dataset.rank = String(emp.overall_rank);
+            let cells = "<td class=\"col-rank\" data-col=\"overall_rank\">" + (emp.overall_rank != null ? emp.overall_rank : "-") + "</td>" +
+                "<td class=\"col-era\" data-col=\"era\">" + (emp.era || "-") + "</td>" +
+                "<td class=\"col-title\" data-col=\"temple_posthumous_title\">" + (emp.temple_posthumous_title || "-") + "</td>" +
+                "<td class=\"col-name\" data-col=\"name\">" + (emp.name || "-") + "</td>";
+            SCORE_KEYS.forEach(function (k) { cells += "<td class=\"col-num\" data-col=\"" + k + "\">" + fmtScore(emp[k]) + "</td>"; });
+            cells += "<td class=\"col-score\" data-col=\"overall_score\">" + fmtScore(emp.overall_score) + "</td>";
+            tr.innerHTML = cells;
+            tr.addEventListener("click", function () { openDetail(emp.overall_rank); });
+            $tbody.appendChild(tr);
+        });
+        updateSortIndicator();
+        applyVisibleCols();
+    }
+
+    function showRankToast(msg) {
+        if ($rankToast && $rankToastMsg) {
+            $rankToastMsg.textContent = msg || "加载失败";
+            $rankToast.style.display = "block";
+        }
+    }
+
+    function hideRankToast() {
+        if ($rankToast) $rankToast.style.display = "none";
+    }
 
     function getQuery() {
         const params = new URLSearchParams();
         params.set("page", String(currentPage));
         params.set("per_page", String(perPage));
+        params.set("sort", sortField);
+        params.set("order", sortOrder);
+        const era = $era.value.trim();
+        if (era) params.set("era", era);
+        const search = $search.value.trim();
+        if (search) params.set("search", search);
+        return params.toString();
+    }
+
+    function getExportQuery() {
+        const params = new URLSearchParams();
         params.set("sort", sortField);
         params.set("order", sortOrder);
         const era = $era.value.trim();
@@ -62,21 +150,30 @@
     }
 
     function loadEmperors() {
+        hideRankToast();
+        $tbody.innerHTML = "<tr><td colspan=\"" + COLSPAN + "\" class=\"rank-loading\">加载中...</td></tr>";
         const q = getQuery();
         fetch(API + "/emperors?" + q)
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 if (res.error) {
                     $tbody.innerHTML = "<tr><td colspan=\"" + COLSPAN + "\">" + res.error + "</td></tr>";
+                    showRankToast(res.error);
                     return;
                 }
                 allEmperors = res.data || [];
                 total = res.total || 0;
-                renderTable(allEmperors);
+                if (allEmperors.length === 0) {
+                    $tbody.innerHTML = "<tr><td colspan=\"" + COLSPAN + "\" class=\"rank-empty\">暂无数据</td></tr>";
+                } else {
+                    renderTable(allEmperors);
+                }
                 renderPagination();
+                applyVisibleCols();
             })
             .catch(function (err) {
                 $tbody.innerHTML = "<tr><td colspan=\"" + COLSPAN + "\">加载失败</td></tr>";
+                showRankToast("加载失败");
             });
     }
 
@@ -107,6 +204,32 @@
             th.classList.remove("sort-asc", "sort-desc");
             if (th.dataset.sort === sortField) th.classList.add(sortOrder === "asc" ? "sort-asc" : "sort-desc");
         });
+    }
+
+    function openColsModal() {
+        var visible = getVisibleColsOrDefault();
+        $colsCheckboxes.innerHTML = "";
+        COL_KEYS.forEach(function (col) {
+            var label = document.createElement("label");
+            label.className = "cols-check-label";
+            var cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.checked = visible[col];
+            cb.dataset.col = col;
+            cb.addEventListener("change", function () {
+                visible[col] = cb.checked;
+                setVisibleCols(visible);
+                applyVisibleCols();
+            });
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(" " + (COL_LABELS[col] || col)));
+            $colsCheckboxes.appendChild(label);
+        });
+        if ($colsModal) { $colsModal.setAttribute("aria-hidden", "false"); $colsModal.classList.add("open"); }
+    }
+
+    function closeColsModal() {
+        if ($colsModal) { $colsModal.setAttribute("aria-hidden", "true"); $colsModal.classList.remove("open"); }
     }
 
     function goToPage(page) {
@@ -158,7 +281,9 @@
                 if (emp.error) {
                     $detailBody.innerHTML = "<p>" + emp.error + "</p>";
                 } else {
-                    $detailBody.innerHTML = formatDetail(emp);
+                    var detailHtml = formatDetail(emp);
+                    detailHtml += "<p class=\"detail-open-link\"><a href=\"/e/" + rank + "\" target=\"_blank\" rel=\"noopener\">在新页打开 / 分享链接</a></p>";
+                    $detailBody.innerHTML = detailHtml;
                 }
                 $detailModal.setAttribute("aria-hidden", "false");
                 $detailModal.classList.add("open");
@@ -234,6 +359,24 @@
     $search.addEventListener("input", function () { currentPage = 1; loadEmperors(); });
     $era.addEventListener("change", function () { currentPage = 1; loadEmperors(); });
     $perPage.addEventListener("change", function () { perPage = parseInt($perPage.value, 10); currentPage = 1; loadEmperors(); });
+
+    if ($rankToastRetry) {
+        $rankToastRetry.addEventListener("click", function () {
+            hideRankToast();
+            loadEmperors();
+        });
+    }
+
+    if ($btnExport) {
+        $btnExport.addEventListener("click", function () {
+            const q = getExportQuery();
+            window.location.href = API + "/emperors/export?" + q;
+        });
+    }
+
+    if ($btnCols) $btnCols.addEventListener("click", openColsModal);
+    if ($colsModalClose) $colsModalClose.addEventListener("click", closeColsModal);
+    if ($colsModalBackdrop) $colsModalBackdrop.addEventListener("click", closeColsModal);
 
     loadEras();
     loadEmperors();

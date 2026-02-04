@@ -14,7 +14,10 @@ def _load_env():
         pass
 _load_env()
 
-from flask import Flask, request, jsonify, render_template, session
+import csv
+import io
+
+from flask import Flask, request, jsonify, render_template, session, Response
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-in-prod")
@@ -159,6 +162,33 @@ def diy():
 @app.route("/guess")
 def guess():
     return render_template("guess.html")
+
+
+@app.route("/e/<int:rank>")
+def emperor_detail_page(rank):
+    """皇帝详情独立页，便于分享链接。"""
+    try:
+        conn, cursor_factory = get_connection()
+        cur = cursor_factory(conn)
+        try:
+            cur.execute(
+                "SELECT overall_rank, era, temple_posthumous_title, name, short_comment, "
+                "virtue, wisdom, fitness, beauty, diligence, ambition, dignity, magnanimity, "
+                "desire_self_control, personnel_management, national_power, military_diplomacy, "
+                "public_support, economy_livelihood, historical_impact, overall_score "
+                "FROM emperor_rank WHERE overall_rank = %s",
+                (rank,),
+            )
+            row = cur.fetchone()
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        return render_template("emperor_detail.html", emperor=None, error=str(e))
+    if not row:
+        return render_template("emperor_detail.html", emperor=None, error="Not found"), 404
+    emperor = row_to_json(row)
+    return render_template("emperor_detail.html", emperor=emperor, error=None)
 
 
 def _is_valid_score(val):
@@ -451,6 +481,84 @@ def api_emperors():
         "page": page,
         "per_page": per_page,
     })
+
+
+def _emperors_where_order():
+    """与 api_emperors 一致的筛选与排序，返回 (where_sql, order_clause, params, order_params)。"""
+    sort = request.args.get("sort", "overall_rank")
+    order = request.args.get("order", "asc").lower()
+    era = request.args.get("era", "").strip()
+    search = request.args.get("search", "").strip()
+    if sort not in SORT_FIELDS:
+        sort = "overall_rank"
+    if order not in ("asc", "desc"):
+        order = "asc"
+    order_params = []
+    if sort == "era":
+        placeholders = ", ".join("%s" for _ in ERA_ORDER)
+        if order == "asc":
+            order_clause = f"ORDER BY (FIELD(era, {placeholders}) = 0), FIELD(era, {placeholders}) ASC"
+            order_params = list(ERA_ORDER) + list(ERA_ORDER)
+        else:
+            order_clause = f"ORDER BY FIELD(era, {placeholders}) DESC"
+            order_params = list(ERA_ORDER)
+    else:
+        order_sql = "ASC" if order == "asc" else "DESC"
+        order_clause = f"ORDER BY `{sort}` IS NULL, `{sort}` {order_sql}"
+    where_clauses = []
+    params = []
+    if era:
+        where_clauses.append("era = %s")
+        params.append(era)
+    if search:
+        where_clauses.append("(name LIKE %s OR era LIKE %s OR temple_posthumous_title LIKE %s)")
+        like_val = f"%{search}%"
+        params.extend([like_val, like_val, like_val])
+    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+    return where_sql, order_clause, params, order_params
+
+
+@app.route("/api/emperors/export", methods=["GET"])
+def api_emperors_export():
+    """按当前筛选/排序导出全部结果为 CSV（query 参数同 /api/emperors）。"""
+    where_sql, order_clause, params, order_params = _emperors_where_order()
+    try:
+        conn, cursor_factory = get_connection()
+        cur = cursor_factory(conn)
+        try:
+            list_sql = (
+                "SELECT overall_rank, era, temple_posthumous_title, name, short_comment, "
+                "virtue, wisdom, fitness, beauty, diligence, ambition, dignity, magnanimity, "
+                "desire_self_control, personnel_management, national_power, military_diplomacy, "
+                "public_support, economy_livelihood, historical_impact, overall_score "
+                "FROM emperor_rank " + where_sql + " " + order_clause
+            )
+            cur.execute(list_sql, params + order_params)
+            rows = cur.fetchall()
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    headers = [
+        "overall_rank", "era", "temple_posthumous_title", "name", "short_comment",
+        "virtue", "wisdom", "fitness", "beauty", "diligence", "ambition", "dignity", "magnanimity",
+        "desire_self_control", "personnel_management", "national_power", "military_diplomacy",
+        "public_support", "economy_livelihood", "historical_impact", "overall_score"
+    ]
+    writer.writerow(headers)
+    for r in rows:
+        row = r if isinstance(r, dict) else dict(zip(headers, r))
+        writer.writerow([row.get(h) if row.get(h) is not None else "" for h in headers])
+    buf.seek(0)
+    return Response(
+        buf.getvalue(),
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=emperor_rank_export.csv"}
+    )
 
 
 @app.route("/api/emperors/all", methods=["GET"])
