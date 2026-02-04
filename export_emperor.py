@@ -7,6 +7,19 @@ import sys
 import pandas as pd
 
 
+def _load_env():
+    """启动时加载 .env：先尝试脚本所在目录，再当前工作目录（与 app.py 一致）。"""
+    try:
+        from dotenv import load_dotenv
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        load_dotenv(os.path.join(base_dir, ".env"))
+        load_dotenv(".env")
+    except ImportError:
+        pass
+    if not os.environ.get("MYSQL_PASSWORD"):
+        _read_env_file()
+
+
 def _read_env_file():
     """从项目根目录的 .env 兜底加载 MYSQL_* 配置（不依赖 python-dotenv）。"""
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -31,13 +44,16 @@ def _read_env_file():
 def get_db_config():
     if not os.environ.get("MYSQL_PASSWORD"):
         _read_env_file()
-    return {
+    cfg = {
         "host": os.environ.get("MYSQL_HOST", "127.0.0.1"),
         "port": int(os.environ.get("MYSQL_PORT", "3306")),
         "user": os.environ.get("MYSQL_USER", "root"),
         "password": os.environ.get("MYSQL_PASSWORD", ""),
         "database": os.environ.get("MYSQL_DATABASE", "mygit"),
     }
+    if not cfg.get("password") and cfg.get("user") == "root":
+        print("提示: 未检测到 MYSQL_PASSWORD。请在项目根目录创建 .env 并设置 MYSQL_PASSWORD=你的密码", file=sys.stderr)
+    return cfg
 
 
 def get_connection():
@@ -122,5 +138,6 @@ def main():
 
 
 if __name__ == "__main__":
+    _load_env()
     main()
 

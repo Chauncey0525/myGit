@@ -4,5 +4,3 @@
 *.pyc
 __pycache__/
 
-# 导出产物（勿提交）
-*_export.xlsx
