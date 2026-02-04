@@ -109,23 +109,46 @@
         });
     }
 
+    function goToPage(page) {
+        const totalPages = Math.max(1, Math.ceil(total / perPage));
+        const p = Math.max(1, Math.min(totalPages, parseInt(page, 10) || 1));
+        if (p !== currentPage) {
+            currentPage = p;
+            loadEmperors();
+        }
+    }
+
     function renderPagination() {
         const totalPages = Math.max(1, Math.ceil(total / perPage));
         let html = "";
+        html += "<button type=\"button\" class=\"btn-page\" data-page=\"1\" " + (currentPage <= 1 ? "disabled" : "") + ">首页</button>";
         if (currentPage > 1) {
-            html += "<button type=\"button\" data-page=\"" + (currentPage - 1) + "\">上一页</button>";
+            html += "<button type=\"button\" class=\"btn-page\" data-page=\"" + (currentPage - 1) + "\">上一页</button>";
         }
         html += " <span class=\"page-info\">第 " + currentPage + " / " + totalPages + " 页，共 " + total + " 条</span> ";
         if (currentPage < totalPages) {
-            html += "<button type=\"button\" data-page=\"" + (currentPage + 1) + "\">下一页</button>";
+            html += "<button type=\"button\" class=\"btn-page\" data-page=\"" + (currentPage + 1) + "\">下一页</button>";
         }
+        html += "<button type=\"button\" class=\"btn-page\" data-page=\"" + totalPages + "\" " + (currentPage >= totalPages ? "disabled" : "") + ">尾页</button>";
+        html += " <span class=\"page-jump\">跳至 <input type=\"number\" id=\"page-input\" min=\"1\" max=\"" + totalPages + "\" value=\"" + currentPage + "\" aria-label=\"页码\"> 页 <button type=\"button\" id=\"btn-goto\">跳转</button></span>";
         $pagination.innerHTML = html;
-        $pagination.querySelectorAll("button").forEach(function (btn) {
+        $pagination.querySelectorAll("button.btn-page").forEach(function (btn) {
             btn.addEventListener("click", function () {
+                if (btn.disabled) return;
                 currentPage = parseInt(btn.dataset.page, 10);
                 loadEmperors();
             });
         });
+        var input = document.getElementById("page-input");
+        var btnGoto = document.getElementById("btn-goto");
+        if (input && btnGoto) {
+            input.addEventListener("keydown", function (e) {
+                if (e.key === "Enter") { btnGoto.click(); }
+            });
+            btnGoto.addEventListener("click", function () {
+                goToPage(input.value);
+            });
+        }
     }
 
     function openDetail(rank) {

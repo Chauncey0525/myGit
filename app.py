@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """皇帝排名网页应用 - Flask 后端"""
 import os
+import random
 
 # 启动时加载 .env：先尝试 app 所在目录，再尝试当前工作目录，确保能读到 MYSQL_PASSWORD
 def _load_env():
@@ -13,9 +14,10 @@ def _load_env():
         pass
 _load_env()
 
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-in-prod")
 
 
 def _read_env_file():
@@ -122,6 +124,27 @@ ERA_ORDER = [
     "后蜀", "后晋", "南唐", "后汉", "后周", "北汉", "北宋", "西夏", "西辽", "金", "南宋", "蒙古", "元", "明", "清",
 ]
 
+# 猜猜乐：提示用一项评分字段（随机）；比较时用所有评分相关字段
+GUESS_HINT_FIELDS = [
+    "virtue", "wisdom", "fitness", "beauty", "diligence", "ambition", "dignity", "magnanimity",
+    "desire_self_control", "personnel_management", "national_power", "military_diplomacy",
+    "public_support", "economy_livelihood", "historical_impact", "overall_score",
+]
+GUESS_COMPARE_FIELDS = [
+    "overall_rank", "era",
+    "virtue", "wisdom", "fitness", "beauty", "diligence", "ambition", "dignity", "magnanimity",
+    "desire_self_control", "personnel_management", "national_power", "military_diplomacy",
+    "public_support", "economy_livelihood", "historical_impact", "overall_score",
+]
+GUESS_FIELD_LABELS = {
+    "overall_rank": "排名", "era": "时代",
+    "virtue": "德", "wisdom": "智", "fitness": "体", "beauty": "美", "diligence": "劳",
+    "ambition": "雄心", "dignity": "尊严", "magnanimity": "气量", "desire_self_control": "欲望自控",
+    "personnel_management": "人事管理", "national_power": "国力", "military_diplomacy": "军事外交",
+    "public_support": "民心", "economy_livelihood": "经济民生", "historical_impact": "历史影响",
+    "overall_score": "综合评分",
+}
+
 
 @app.route("/")
 def index():
@@ -131,6 +154,228 @@ def index():
 @app.route("/diy")
 def diy():
     return render_template("diy.html")
+
+
+@app.route("/guess")
+def guess():
+    return render_template("guess.html")
+
+
+def _is_valid_score(val):
+    """评分为有效数字时才用作提示，排除 None、空、'-' 等。"""
+    if val is None or val == "":
+        return False
+    try:
+        float(val)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+@app.route("/api/guess/start", methods=["GET"])
+def api_guess_start():
+    """开始一局猜猜乐：随机选一名皇帝、随机一项有有效数值的评分作为提示，难度=可猜次数。"""
+    difficulty = request.args.get("difficulty", 5, type=int)
+    difficulty = max(1, min(20, difficulty))
+    try:
+        conn, cursor_factory = get_connection()
+        cur = cursor_factory(conn)
+        try:
+            for _ in range(50):  # 最多重试 50 次，避免抽到所有评分都为空的皇帝
+                cur.execute(
+                    "SELECT overall_rank, era, temple_posthumous_title, name, short_comment, "
+                    "virtue, wisdom, fitness, beauty, diligence, ambition, dignity, magnanimity, "
+                    "desire_self_control, personnel_management, national_power, military_diplomacy, "
+                    "public_support, economy_livelihood, historical_impact, overall_score "
+                    "FROM emperor_rank ORDER BY RAND() LIMIT 1"
+                )
+                row = cur.fetchone()
+                if not row:
+                    break
+                answer = row_to_json(row)
+                valid_hint_fields = [f for f in GUESS_HINT_FIELDS if _is_valid_score(answer.get(f))]
+                try:
+                    overall = answer.get("overall_score")
+                    overall_zero = overall is None or overall == "" or float(overall) == 0
+                except (TypeError, ValueError):
+                    overall_zero = True
+                if valid_hint_fields and not overall_zero:
+                    hint_field = random.choice(valid_hint_fields)
+                    hint_val = answer.get(hint_field)
+                    session["guess_answer"] = answer
+                    session["guess_guesses_left"] = difficulty
+                    session["guess_hint_field"] = hint_field
+                    return jsonify({
+                        "hint": {"field": hint_field, "label": GUESS_FIELD_LABELS[hint_field], "value": hint_val},
+                        "total_guesses": difficulty,
+                    })
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"error": "暂无可用的皇帝数据（需至少有一项有效评分）"}), 500
+
+
+def _compare_value(field, guess_val, answer_val):
+    """返回 'high' | 'low' | 'correct'。排名：数字小=高；时代：ERA_ORDER 索引小=早。"""
+    if field == "overall_rank":
+        g, a = (guess_val is not None and guess_val != ""), (answer_val is not None and answer_val != "")
+        if not g and not a:
+            return "correct"
+        if not g or not a:
+            return "low" if not g else "high"
+        gv, av = int(guess_val), int(answer_val)
+        if gv == av:
+            return "correct"
+        return "low" if gv > av else "high"  # 排名数字小=更好=高了
+    if field == "era":
+        if (not guess_val and not answer_val) or guess_val == answer_val:
+            return "correct"
+        try:
+            gi = ERA_ORDER.index(guess_val) if guess_val else -1
+            ai = ERA_ORDER.index(answer_val) if answer_val else -1
+        except (ValueError, TypeError):
+            return "correct"
+        if gi == ai:
+            return "correct"
+        return "early" if gi < ai else "late"  # 时代早/晚
+    # 数值型
+    g_ok = guess_val is not None and guess_val != ""
+    a_ok = answer_val is not None and answer_val != ""
+    if not g_ok and not a_ok:
+        return "correct"
+    if not g_ok or not a_ok:
+        return "low" if not g_ok else "high"
+    try:
+        gv = float(guess_val)
+        av = float(answer_val)
+    except (TypeError, ValueError):
+        return "correct"
+    if gv == av:
+        return "correct"
+    return "high" if gv > av else "low"
+
+
+@app.route("/api/guess/guess", methods=["POST"])
+def api_guess_guess():
+    """提交一次猜测，返回各字段对比（高了/低了/正确）及是否猜中、剩余次数。"""
+    try:
+        answer = session.get("guess_answer")
+        if not answer:
+            return jsonify({"error": "请先开始游戏"}), 400
+        guesses_left = session.get("guess_guesses_left", 0)
+        if guesses_left <= 0:
+            return jsonify({"error": "本局次数已用完"}), 400
+        body = request.get_json(silent=True) or {}
+        guess_input = (body.get("guess") or "").strip()
+        if not guess_input:
+            return jsonify({"error": "请输入皇帝姓名或谥/庙号"}), 400
+    except Exception as e:
+        return jsonify({"error": "请求解析失败: " + str(e)}), 500
+    try:
+        conn, cursor_factory = get_connection()
+        cur = cursor_factory(conn)
+        try:
+            # 支持按姓名或谥/庙号查询：先姓名（精确、模糊），再谥/庙号（精确、模糊）
+            cols = (
+                "SELECT overall_rank, era, temple_posthumous_title, name, short_comment, "
+                "virtue, wisdom, fitness, beauty, diligence, ambition, dignity, magnanimity, "
+                "desire_self_control, personnel_management, national_power, military_diplomacy, "
+                "public_support, economy_livelihood, historical_impact, overall_score "
+                "FROM emperor_rank "
+            )
+            cur.execute(cols + "WHERE name = %s LIMIT 1", (guess_input,))
+            row = cur.fetchone()
+            if not row:
+                cur.execute(cols + "WHERE name LIKE %s LIMIT 1", ("%" + guess_input + "%",))
+                row = cur.fetchone()
+            if not row:
+                cur.execute(cols + "WHERE temple_posthumous_title = %s LIMIT 1", (guess_input,))
+                row = cur.fetchone()
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    if not row:
+        return jsonify({"error": "未找到该皇帝，请检查姓名或谥/庙号"}), 404
+    try:
+        guess_emp = row_to_json(row)
+    except Exception as e:
+        return jsonify({"error": "数据解析失败: " + str(e)}), 500
+    def _fmt_display_val(val, field):
+        if val is None or val == "":
+            return None
+        if field == "overall_rank":
+            try:
+                return int(val) if isinstance(val, (int, float)) else int(float(val))
+            except (TypeError, ValueError):
+                return str(val)
+        if field in GUESS_HINT_FIELDS:
+            try:
+                return float(val) if isinstance(val, (int, float)) else float(val)
+            except (TypeError, ValueError):
+                return str(val)
+        return str(val) if not isinstance(val, (int, float)) else (int(val) if val == int(val) else float(val))
+
+    comparison = []
+    for f in GUESS_COMPARE_FIELDS:
+        try:
+            res = _compare_value(f, guess_emp.get(f), answer.get(f))
+        except Exception:
+            res = "correct"
+        v = _fmt_display_val(guess_emp.get(f), f)
+        comparison.append({"field": f, "label": GUESS_FIELD_LABELS[f], "result": res, "value": v})
+    guesses_left -= 1
+    session["guess_guesses_left"] = guesses_left
+    gr, ar = guess_emp.get("overall_rank"), answer.get("overall_rank")
+    try:
+        won = gr is not None and ar is not None and int(gr) == int(ar)
+    except (TypeError, ValueError):
+        won = gr == ar
+    if won or guesses_left <= 0:
+        session.pop("guess_answer", None)
+        session.pop("guess_guesses_left", None)
+        session.pop("guess_hint_field", None)
+    return jsonify({
+        "comparison": comparison,
+        "guess_name": guess_emp.get("name"),
+        "guess_rank": guess_emp.get("overall_rank"),
+        "won": won,
+        "guesses_left": guesses_left,
+        "answer": (answer if (won or guesses_left <= 0) else None),
+    })
+
+
+@app.route("/api/guess/giveup", methods=["POST"])
+def api_guess_giveup():
+    """放弃本局，返回当前答案并清空 session。"""
+    answer = session.get("guess_answer")
+    if not answer:
+        return jsonify({"error": "没有进行中的对局"}), 400
+    session.pop("guess_answer", None)
+    session.pop("guess_guesses_left", None)
+    session.pop("guess_hint_field", None)
+    return jsonify({"answer": answer})
+
+
+@app.route("/api/guess/names", methods=["GET"])
+def api_guess_names():
+    """返回所有皇帝姓名列表，供前端联想输入。"""
+    try:
+        conn, cursor_factory = get_connection()
+        cur = cursor_factory(conn)
+        try:
+            cur.execute("SELECT name FROM emperor_rank ORDER BY overall_rank")
+            rows = cur.fetchall()
+            names = [r["name"] if isinstance(r, dict) else r[0] for r in rows]
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"data": names})
 
 
 @app.route("/api/emperors", methods=["GET"])
@@ -158,8 +403,9 @@ def api_emperors():
             order_clause = f"ORDER BY FIELD(era, {placeholders}) DESC"
             order_params = list(ERA_ORDER)
     else:
+        # 数字字段：NULL（前端显示为 -）统一放最后，只按数字排，避免倒序时 "-" 排前面
         order_sql = "ASC" if order == "asc" else "DESC"
-        order_clause = f"ORDER BY `{sort}` {order_sql}"
+        order_clause = f"ORDER BY `{sort}` IS NULL, `{sort}` {order_sql}"
 
     where_clauses = []
     params = []

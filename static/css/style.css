@@ -230,14 +230,43 @@ body {
     font-size: 0.9rem;
 }
 
-.pagination button:hover {
+.pagination button:hover:not(:disabled) {
     border-color: var(--accent);
     color: var(--accent);
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .page-info {
     color: var(--muted);
     font-size: 0.9rem;
+}
+
+.page-jump {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.page-jump input {
+    width: 3rem;
+    padding: 0.35rem 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.page-jump input:focus {
+    outline: none;
+    border-color: var(--accent);
 }
 
 /* 详情模态框 */

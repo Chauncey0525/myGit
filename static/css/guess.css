@@ -1,0 +1,242 @@
+/* 皇帝猜猜乐 */
+.guess-app .header {
+    margin-bottom: 1rem;
+}
+
+.guess-setup .control-row {
+    justify-content: center;
+    gap: 1rem;
+}
+
+.btn-start,
+.btn-guess,
+.btn-giveup,
+.btn-again {
+    padding: 0.5rem 1.2rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.btn-start:hover:not(:disabled),
+.btn-guess:hover:not(:disabled),
+.btn-again:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.btn-giveup:hover {
+    border-color: var(--muted);
+    color: var(--muted);
+}
+
+.btn-again {
+    margin-top: 1rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.guess-play {
+    max-width: 640px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.guess-play .guess-input-row {
+    justify-content: center;
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.hint-box {
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.hint-text {
+    margin: 0;
+    font-size: 1.05rem;
+    color: var(--text);
+}
+
+.hint-text strong {
+    color: var(--accent);
+}
+
+.guesses-left {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.guess-input-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.guess-input-row label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.guess-input-row input {
+    min-width: 200px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 1rem;
+}
+
+.guess-input-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.comparison-history {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.guess-round {
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.guess-round-title {
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text);
+}
+
+.guess-round-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.guess-round-table th,
+.guess-round-table td {
+    padding: 0.35rem 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.guess-round-table th {
+    color: var(--muted);
+    font-weight: 500;
+    width: 5rem;
+}
+
+.guess-round-table td.guess-val {
+    color: var(--text);
+    padding-right: 0.75rem;
+}
+
+/* 高了/时代晚了：红色 ↑，符号加大 */
+.guess-round-table td.result-arrow-up {
+    color: #e07c7c;
+    font-weight: 600;
+    font-size: 2.5em;
+}
+
+/* 低了/时代早了：橘色 ↓，符号加大 */
+.guess-round-table td.result-arrow-down {
+    color: #e0a040;
+    font-weight: 600;
+    font-size: 2.5em;
+}
+
+/* 正确：绿色 √，符号加大 */
+.guess-round-table td.result-correct {
+    color: #7ce07c;
+    font-weight: 600;
+    font-size: 2.5em;
+}
+
+.guess-result {
+    max-width: 480px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.result-message {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.result-message.won {
+    color: #7ce07c;
+}
+
+.result-message.lost {
+    color: #e07c7c;
+}
+
+.answer-card {
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+.answer-card dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25rem 1.5rem;
+}
+
+.answer-card dt {
+    color: var(--muted);
+    margin: 0;
+}
+
+.answer-card dd {
+    margin: 0;
+}
+
+.guess-nav {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.guess-nav a {
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.guess-nav a:hover {
+    color: var(--accent);
+}
+
+.err-toast {
+    padding: 0.5rem 0.75rem;
+    background: rgba(224, 124, 124, 0.2);
+    border: 1px solid #e07c7c;
+    border-radius: 6px;
+    color: #e07c7c;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}

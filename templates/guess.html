@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>皇帝猜猜乐</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/guess.css') }}">
+</head>
+<body>
+    <div class="app guess-app">
+        <header class="header">
+            <h1>皇帝猜猜乐</h1>
+            <p class="subtitle">根据一项评分猜皇帝，每次猜测会得到各维度对比（高了/低了/正确）</p>
+        </header>
+
+        <section class="guess-setup" id="guess-setup">
+            <div class="control-row">
+                <label>
+                    <span>难度（可猜次数）</span>
+                    <select id="difficulty">
+                        <option value="3">3 次（困难）</option>
+                        <option value="5" selected>5 次（中等）</option>
+                        <option value="8">8 次（简单）</option>
+                        <option value="12">12 次（轻松）</option>
+                    </select>
+                </label>
+                <button type="button" class="btn-start" id="btn-start">开始游戏</button>
+            </div>
+        </section>
+
+        <section class="guess-play" id="guess-play" style="display: none;">
+            <div class="hint-box" id="hint-box">
+                <p class="hint-text">某皇帝的「<span id="hint-label"></span>」为 <strong id="hint-value"></strong></p>
+            </div>
+            <div class="guesses-left" id="guesses-left">剩余 <span id="guesses-num">0</span> 次</div>
+            <div class="guess-input-row" id="guess-input-wrap">
+                <label>
+                    <span>输入皇帝姓名或谥/庙号</span>
+                    <input type="text" id="guess-input" autocomplete="off">
+                </label>
+                <button type="button" class="btn-guess" id="btn-guess">猜</button>
+                <button type="button" class="btn-giveup" id="btn-giveup">放弃</button>
+            </div>
+            <div class="comparison-history" id="comparison-history"></div>
+        </section>
+
+        <section class="guess-result" id="guess-result" style="display: none;">
+            <div class="result-message" id="result-message"></div>
+            <div class="answer-card" id="answer-card"></div>
+            <button type="button" class="btn-again" id="btn-again">再玩一局</button>
+        </section>
+
+        <div class="guess-nav">
+            <a href="{{ url_for('index') }}">← 排行榜</a>
+            <a href="{{ url_for('diy') }}">DIY 排名</a>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/guess.js') }}"></script>
+</body>
+</html>
