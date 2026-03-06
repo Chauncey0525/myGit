@@ -20,17 +20,18 @@
                 </label>
                 <label>
                     <span>时代</span>
-                    <select id="era">
-                        <option value="">全部</option>
-                    </select>
+                    <button type="button" class="btn-era-select" id="btn-era-select" title="选择时代（可多选）">
+                        <span id="era-display">全部</span>
+                        <span class="era-arrow">▼</span>
+                    </button>
                 </label>
                 <label>
                     <span>每页</span>
                     <select id="per_page">
                         <option value="5">5</option>
-                        <option value="10">10</option>
+                        <option value="10" selected>10</option>
                         <option value="20">20</option>
-                        <option value="50" selected>50</option>
+                        <option value="50">50</option>
                         <option value="100">100</option>
                     </select>
                 </label>
@@ -100,6 +101,22 @@
             <div id="sort-levels" class="sort-levels"></div>
             <div class="modal-actions">
                 <button type="button" class="btn-apply" id="sort-apply">应用并刷新</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="era-modal" aria-hidden="true">
+        <div class="modal-backdrop" id="era-modal-backdrop"></div>
+        <div class="modal-content modal-era">
+            <button type="button" class="modal-close" id="era-modal-close" aria-label="关闭">&times;</button>
+            <h3 class="modal-title">选择时代（可多选）</h3>
+            <div class="era-modal-toolbar">
+                <input type="text" id="era-modal-search" placeholder="搜索时代" autocomplete="off">
+                <button type="button" class="btn-apply btn-secondary" id="era-reset">重置</button>
+            </div>
+            <div id="era-checkboxes" class="era-checkboxes"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn-apply" id="era-apply">应用并刷新</button>
             </div>
         </div>
     </div>

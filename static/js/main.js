@@ -6,8 +6,10 @@
 
     let currentPage = 1;
     let total = 0;
-    let perPage = 50;
+    let perPage = 10;
     let allEmperors = [];
+    let selectedEras = [];
+    let allEras = [];
 
     const SCORE_KEYS = ["virtue", "wisdom", "fitness", "beauty", "diligence", "ambition", "dignity", "magnanimity", "desire_self_control", "personnel_management", "national_power", "military_diplomacy", "public_support", "economy_livelihood", "historical_impact"];
     const COL_KEYS = ["overall_rank", "era", "temple_posthumous_title", "name"].concat(SCORE_KEYS).concat(["overall_score"]);
@@ -20,8 +22,16 @@
     const $tbody = document.getElementById("tbody");
     const $pagination = document.getElementById("pagination");
     const $search = document.getElementById("search");
-    const $era = document.getElementById("era");
+    const $btnEraSelect = document.getElementById("btn-era-select");
+    const $eraDisplay = document.getElementById("era-display");
     const $perPage = document.getElementById("per_page");
+    const $eraModal = document.getElementById("era-modal");
+    const $eraModalBackdrop = document.getElementById("era-modal-backdrop");
+    const $eraModalClose = document.getElementById("era-modal-close");
+    const $eraModalSearch = document.getElementById("era-modal-search");
+    const $eraReset = document.getElementById("era-reset");
+    const $eraCheckboxes = document.getElementById("era-checkboxes");
+    const $eraApply = document.getElementById("era-apply");
     let multiSort = [{ field: "overall_rank", order: "asc" }];
     const $detailModal = document.getElementById("detail-modal");
     const $detailBody = document.getElementById("detail-body");
@@ -96,8 +106,9 @@
         const sortOrders = multiSort.map(function (x) { return x.order; });
         params.set("sort", sortFields.join(","));
         params.set("order", sortOrders.join(","));
-        const era = $era.value.trim();
-        if (era) params.set("era", era);
+        selectedEras.forEach(function (e) {
+            params.append("era", e);
+        });
         const search = $search.value.trim();
         if (search) params.set("search", search);
         return params.toString();
@@ -109,8 +120,9 @@
         const sortOrders = multiSort.map(function (x) { return x.order; });
         params.set("sort", sortFields.join(","));
         params.set("order", sortOrders.join(","));
-        const era = $era.value.trim();
-        if (era) params.set("era", era);
+        selectedEras.forEach(function (e) {
+            params.append("era", e);
+        });
         const search = $search.value.trim();
         if (search) params.set("search", search);
         return params.toString();
@@ -129,15 +141,78 @@
                     if (ib !== -1) return 1;
                     return (a || "").localeCompare(b || "");
                 });
-                $era.innerHTML = "<option value=\"\">全部</option>";
-                list.forEach(function (e) {
-                    const opt = document.createElement("option");
-                    opt.value = e;
-                    opt.textContent = e;
-                    $era.appendChild(opt);
-                });
+                allEras = list;
+                updateEraDisplay();
             })
-            .catch(function () {});
+            .catch(function () {
+                updateEraDisplay();
+            });
+    }
+
+    function updateEraDisplay() {
+        if (!$eraDisplay) return;
+        if (selectedEras.length === 0) {
+            $eraDisplay.textContent = "全部";
+        } else if (selectedEras.length === 1) {
+            $eraDisplay.textContent = selectedEras[0];
+        } else {
+            $eraDisplay.textContent = "已选 " + selectedEras.length + " 个";
+        }
+    }
+
+    function renderEraCheckboxes(filterText) {
+        if (!$eraCheckboxes) return;
+        var q = (filterText || "").trim();
+        $eraCheckboxes.innerHTML = "";
+        allEras.forEach(function (era) {
+            if (q && era.indexOf(q) === -1) return;
+            var label = document.createElement("label");
+            label.className = "era-check-label";
+            var cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.value = era;
+            cb.checked = selectedEras.indexOf(era) !== -1;
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(" " + era));
+            $eraCheckboxes.appendChild(label);
+        });
+    }
+
+    function openEraModal() {
+        renderEraCheckboxes($eraModalSearch ? $eraModalSearch.value : "");
+        if ($eraModalSearch) {
+            $eraModalSearch.focus();
+            $eraModalSearch.setSelectionRange($eraModalSearch.value.length, $eraModalSearch.value.length);
+        }
+        if ($eraModal) {
+            $eraModal.setAttribute("aria-hidden", "false");
+            $eraModal.classList.add("open");
+        }
+    }
+
+    function closeEraModal() {
+        if ($eraModal) {
+            $eraModal.setAttribute("aria-hidden", "true");
+            $eraModal.classList.remove("open");
+        }
+    }
+
+    function applyEraModal() {
+        selectedEras = [];
+        $eraCheckboxes.querySelectorAll("input[type='checkbox']:checked").forEach(function (cb) {
+            selectedEras.push(cb.value);
+        });
+        updateEraDisplay();
+        closeEraModal();
+        currentPage = 1;
+        loadEmperors();
+    }
+
+    function resetEraModal() {
+        selectedEras = [];
+        if ($eraModalSearch) $eraModalSearch.value = "";
+        renderEraCheckboxes("");
+        updateEraDisplay();
     }
 
     function loadEmperors() {
@@ -380,7 +455,19 @@
     });
 
     $search.addEventListener("input", function () { currentPage = 1; loadEmperors(); });
-    $era.addEventListener("change", function () { currentPage = 1; loadEmperors(); });
+    if ($btnEraSelect) $btnEraSelect.addEventListener("click", openEraModal);
+    if ($eraModalClose) $eraModalClose.addEventListener("click", closeEraModal);
+    if ($eraModalBackdrop) $eraModalBackdrop.addEventListener("click", closeEraModal);
+    if ($eraApply) $eraApply.addEventListener("click", applyEraModal);
+    if ($eraReset) $eraReset.addEventListener("click", resetEraModal);
+    if ($eraModalSearch) {
+        $eraModalSearch.addEventListener("input", function () {
+            renderEraCheckboxes($eraModalSearch.value);
+        });
+        $eraModalSearch.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") applyEraModal();
+        });
+    }
     $perPage.addEventListener("change", function () { perPage = parseInt($perPage.value, 10); currentPage = 1; loadEmperors(); });
 
     if ($rankToastRetry) {
@@ -403,6 +490,7 @@
     if ($sortApply) $sortApply.addEventListener("click", applySortModal);
 
     initMultiSortFromStorage();
+    if ($perPage) perPage = parseInt($perPage.value, 10) || 10;
     loadEras();
     loadEmperors();
 })();

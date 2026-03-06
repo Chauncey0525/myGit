@@ -51,21 +51,22 @@ python app.py
 
 ## 导入 Excel 数据
 
+默认读取项目根目录下的 `emperor_rank_export.xlsx`（英文表头，与导出格式一致）：
+
 ```bash
-python import_emperor.py --excel "C:\path\to\皇帝排行榜3.0修订版.xlsx"
+python import_emperor.py
 ```
 
-也支持用环境变量指定 Excel 路径：
+指定其他 Excel 文件（支持中文表头的旧版）：
 
 ```bash
-set EXCEL_PATH=C:\path\to\皇帝排行榜3.0修订版.xlsx
-python import_emperor.py
+python import_emperor.py --excel "path/to/你的文件.xlsx"
 ```
 
 仅验证列映射（不连库）：
 
 ```bash
-python import_emperor.py --dry-run --excel "C:\path\to\皇帝排行榜3.0修订版.xlsx"
+python import_emperor.py --dry-run
 ```
 
 ## 导出为 Excel
@@ -126,25 +127,166 @@ python -m pytest tests/ -v
 
 ```
 ├── app.py                      # Flask 后端
-├── create_emperor_table.sql     # 建表 SQL
-├── import_emperor.py            # Excel 导入脚本
-├── export_emperor.py            # 从数据库导出为 Excel
+├── create_emperor_table.sql    # 建表 SQL
+├── import_emperor.py           # Excel 导入脚本
+├── export_emperor.py           # 从数据库导出为 Excel
 ├── requirements.txt
+├── .env.example                # 配置示例（复制为 .env 使用）
 ├── tests/
 │   ├── __init__.py
-│   └── test_api.py              # pytest 关键接口与 _compare_value 等
+│   └── test_api.py
 ├── templates/
-│   ├── index.html              # 排行榜页
-│   ├── diy.html                # DIY 页
-│   ├── guess.html              # 皇帝猜猜乐页
-│   └── emperor_detail.html     # 皇帝详情独立页（可分享链接）
+│   ├── index.html
+│   ├── diy.html
+│   ├── guess.html
+│   └── emperor_detail.html
 ├── static/
 │   ├── css/
-│   │   ├── style.css           # 排行榜/DIY 共用
-│   │   └── guess.css           # 猜猜乐页
+│   │   ├── style.css
+│   │   └── guess.css
 │   └── js/
-│       ├── main.js             # 排行榜页脚本
-│       ├── diy.js              # DIY 页脚本
-│       └── guess.js            # 猜猜乐页脚本
+│       ├── main.js
+│       ├── diy.js
+│       └── guess.js
 └── README.md
 ```
+
+可选：`emperor_rank_export.xlsx` 可作为初始数据，部署时若不需要可删除；导入时用 `--excel` 指定其它文件即可。
+
+---
+
+## 打包与部署到云服务器
+
+本项目无 Windows 专用路径，可在 Linux 云服务器上直接运行。
+
+### 1. 打包
+
+在本地排除无关文件后打包（不包含 `.env`、`__pycache__`、`.pytest_cache` 等，已由 `.gitignore` 忽略）：
+
+```bash
+# 方式 A：git 归档（推荐，不含 .git）
+git archive -o mygit-deploy.zip HEAD
+
+# 方式 B：若未用 git，手动 zip 时不要包含 .env、__pycache__、.pytest_cache
+```
+
+如需带初始数据一起部署，保留 `emperor_rank_export.xlsx`；否则可删除该文件，到服务器后再导入。
+
+### 2. 上传到云服务器
+
+```bash
+scp mygit-deploy.zip user@你的服务器IP:/home/user/
+ssh user@你的服务器IP
+cd /home/user && unzip mygit-deploy.zip -d mygit && cd mygit
+```
+
+### 3. 服务器环境
+
+- **Python 3.8+**
+- **MySQL 5.7+ / 8.0+**（与应用同机或远程均可）
+
+安装依赖：
+
+```bash
+python3 -m venv venv
+source venv/bin/activate   # Linux
+pip install -r requirements.txt
+```
+
+### 4. 数据库
+
+在服务器上创建库并建表（若 MySQL 在本地）：
+
+```bash
+mysql -u root -p -e "CREATE DATABASE mygit DEFAULT CHARSET utf8mb4;"
+mysql -u root -p mygit < create_emperor_table.sql
+```
+
+若 MySQL 在其它机器，请修改下面 `.env` 中的 `MYSQL_HOST`。
+
+### 5. 配置
+
+在项目根目录创建 `.env`（**不要**提交到 git）：
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+填写生产环境值，例如：
+
+```ini
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=你的MySQL密码
+MYSQL_DATABASE=mygit
+FLASK_SECRET_KEY=随机长字符串
+```
+
+### 6. 导入数据（可选）
+
+若打包时带了 `emperor_rank_export.xlsx`：
+
+```bash
+python import_emperor.py
+```
+
+否则将 Excel 上传后执行：
+
+```bash
+python import_emperor.py --excel /path/to/emperor_rank_export.xlsx
+```
+
+### 7. 启动服务
+
+**开发/调试**（仅本机访问）：
+
+```bash
+python app.py
+# 默认 http://0.0.0.0:5000，云服务器需在安全组放行 5000 端口
+```
+
+**生产环境**（推荐用 Gunicorn）：
+
+```bash
+gunicorn -w 4 -b 0.0.0.0:5000 app:app
+```
+
+- `-w 4`：4 个 worker，可按 CPU 核数调整  
+- `-b 0.0.0.0:5000`：监听所有网卡的 5000 端口  
+
+后台运行示例：
+
+```bash
+nohup gunicorn -w 4 -b 0.0.0.0:5000 app:app > gunicorn.log 2>&1 &
+```
+
+### 8. 可选：Nginx 反代
+
+如需用 80 端口或配置域名，可在 Nginx 中增加：
+
+```nginx
+server {
+    listen 80;
+    server_name 你的域名或IP;
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+重载 Nginx：`sudo nginx -s reload`
+
+### 部署检查清单
+
+- [ ] Python 3.8+、MySQL 已安装
+- [ ] 已创建数据库并执行 `create_emperor_table.sql`
+- [ ] 已配置 `.env`（且未提交到 git）
+- [ ] 已执行 `import_emperor.py` 导入数据（若需要）
+- [ ] 安全组/防火墙已放行 5000（或 Nginx 的 80）
+- [ ] 生产环境使用 `gunicorn` 或等效 WSGI 服务器

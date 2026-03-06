@@ -474,16 +474,18 @@ def api_emperors():
     per_page = min(100, max(1, request.args.get("per_page", 50, type=int)))
     sort = request.args.get("sort", "overall_rank")
     order = request.args.get("order", "asc")
-    era = request.args.get("era", "").strip()
+    era_list = request.args.getlist("era")
+    era_list = [e.strip() for e in era_list if e.strip()]
     search = request.args.get("search", "").strip()
 
     order_clause, order_params = _parse_multi_sort(sort, order)
 
     where_clauses = []
     params = []
-    if era:
-        where_clauses.append("era = %s")
-        params.append(era)
+    if era_list:
+        placeholders = ", ".join("%s" for _ in era_list)
+        where_clauses.append(f"era IN ({placeholders})")
+        params.extend(era_list)
     if search:
         where_clauses.append("(name LIKE %s OR era LIKE %s OR temple_posthumous_title LIKE %s)")
         like_val = f"%{search}%"
@@ -529,14 +531,16 @@ def _emperors_where_order():
     """与 api_emperors 一致的筛选与排序，返回 (where_sql, order_clause, params, order_params)。"""
     sort = request.args.get("sort", "overall_rank")
     order = request.args.get("order", "asc")
-    era = request.args.get("era", "").strip()
+    era_list = request.args.getlist("era")
+    era_list = [e.strip() for e in era_list if e.strip()]
     search = request.args.get("search", "").strip()
     order_clause, order_params = _parse_multi_sort(sort, order)
     where_clauses = []
     params = []
-    if era:
-        where_clauses.append("era = %s")
-        params.append(era)
+    if era_list:
+        placeholders = ", ".join("%s" for _ in era_list)
+        where_clauses.append(f"era IN ({placeholders})")
+        params.extend(era_list)
     if search:
         where_clauses.append("(name LIKE %s OR era LIKE %s OR temple_posthumous_title LIKE %s)")
         like_val = f"%{search}%"

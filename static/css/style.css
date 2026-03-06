@@ -118,6 +118,36 @@ body {
     min-width: 160px;
 }
 
+.btn-era-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color var(--transition), background var(--transition), color var(--transition);
+}
+
+.btn-era-select:hover {
+    border-color: var(--accent);
+    background: rgba(201, 162, 39, 0.08);
+    color: var(--accent);
+}
+
+.btn-era-select .era-arrow {
+    font-size: 0.75rem;
+    color: var(--muted);
+    transition: color var(--transition);
+}
+
+.btn-era-select:hover .era-arrow {
+    color: var(--accent);
+}
+
 .actions {
     margin-left: auto;
 }
@@ -490,6 +520,78 @@ body {
 
 .modal-actions .btn-apply:active {
     transform: scale(0.98);
+}
+
+.modal-era .modal-title {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+}
+
+.era-modal-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+}
+
+.era-modal-toolbar input {
+    flex: 1;
+    min-width: 10rem;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.era-modal-toolbar input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.15);
+}
+
+.btn-secondary {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text) !important;
+}
+
+.btn-secondary:hover {
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+    background: rgba(201, 162, 39, 0.06) !important;
+}
+
+.era-checkboxes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+    gap: 0.5rem;
+    max-height: 50vh;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+.era-check-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text);
+    padding: 0.3rem 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition);
+}
+
+.era-check-label:hover {
+    background: rgba(201, 162, 39, 0.08);
+}
+
+.era-check-label input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: var(--accent);
 }
 
 .detail-dl {

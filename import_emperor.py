@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""从「皇帝排行榜3.0修订版.xlsx」导入到 emperor_rank（英文字段）"""
+"""从 Excel 导入到 emperor_rank（英文字段）。
+
+优先支持仓库中的 `emperor_rank_export.xlsx`（英文表头）；同时兼容旧的中文表头文件。
+"""
 import os
 import sys
 
@@ -14,7 +17,23 @@ except ImportError:
 # mysql.connector 通常不需 cryptography，可避免旧 pip 下安装 cryptography 失败。
 
 # Excel 路径（可用环境变量 EXCEL_PATH 覆盖，或运行时传 --excel）
-EXCEL_PATH = os.environ.get("EXCEL_PATH", r"c:\Users\wb.zhangchixin02\Desktop\皇帝排行榜3.0修订版.xlsx")
+# 默认读取本仓库导出的文件 emperor_rank_export.xlsx（英文表头）
+EXCEL_PATH = os.environ.get(
+    "EXCEL_PATH",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "emperor_rank_export.xlsx"),
+)
+
+
+def _load_env():
+    """启动时加载 .env：先尝试脚本所在目录，再当前工作目录（与 app.py/export_emperor.py 一致）。"""
+    try:
+        from dotenv import load_dotenv
+
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        load_dotenv(os.path.join(base_dir, ".env"))
+        load_dotenv(".env")
+    except ImportError:
+        pass
 
 # Excel 列名 -> 目标表列名（英文字段）。
 # - “顺序号”不入表
@@ -120,16 +139,19 @@ def _to_str_or_none(x):
     return s if s else None
 
 
-def main(excel_path=None):
-    excel_path = excel_path or EXCEL_PATH
-    if not os.path.isfile(excel_path):
-        print(f"文件不存在: {excel_path}")
-        sys.exit(1)
-
+def load_excel_data(excel_path: str):
+    """读取 Excel 并返回可直接入库的 DataFrame（列名为 DB_COLS 子集）。"""
     print("正在读取 Excel …")
     df = pd.read_excel(excel_path, sheet_name=0, engine="openpyxl")
 
-    # 按 Excel 列名匹配到表结构（Excel 表头可能含换行，用 strip 后的首词或整列名匹配）
+    # 情况 A：Excel 已经是英文表头（export_emperor.py 导出的 emperor_rank_export.xlsx）
+    # 直接取 DB_COLS 交集即可。
+    english_cols = [c for c in DB_COLS if c in df.columns]
+    if len(english_cols) >= 5 and "overall_rank" in english_cols:
+        data = df[english_cols].copy()
+        return data
+
+    # 情况 B：旧的中文表头文件（保留兼容）
     def norm_excel(s):
         return "".join(str(s).split())
 
@@ -137,7 +159,6 @@ def main(excel_path=None):
     rename = {}
     for c in df.columns:
         sc = str(c).strip()
-        # 先精确匹配，再按“去空白”后的关键词匹配
         if sc in EXCEL_TO_DB:
             use_cols.append(c)
             rename[c] = EXCEL_TO_DB[sc]
@@ -150,14 +171,22 @@ def main(excel_path=None):
                     break
     if len(use_cols) < len(EXCEL_TO_DB):
         print("部分列未匹配，请检查 Excel 表头与 EXCEL_TO_DB 是否一致。")
-    data = df[use_cols].copy()
-    data = data.rename(columns=rename)
-    # historical_impact = impact_score*10 (impact_score 不入表)
+    data = df[use_cols].copy().rename(columns=rename)
     if "impact_score" in data.columns:
         data["historical_impact"] = data["impact_score"].map(
             lambda x: (_to_decimal_or_none(x) * 10) if _to_decimal_or_none(x) is not None else None
         )
     data = data[[c for c in DB_COLS if c in data.columns]]
+    return data
+
+
+def main(excel_path=None):
+    excel_path = excel_path or EXCEL_PATH
+    if not os.path.isfile(excel_path):
+        print(f"文件不存在: {excel_path}")
+        sys.exit(1)
+
+    data = load_excel_data(excel_path)
 
     # MySQL 连接（可从环境变量覆盖）
     host = os.environ.get("MYSQL_HOST", "127.0.0.1")
@@ -264,6 +293,7 @@ def main(excel_path=None):
 
 
 if __name__ == "__main__":
+    _load_env()
     import argparse
     parser = argparse.ArgumentParser(description="从 Excel 导入皇帝排行榜数据到 MySQL 表 emperor_rank")
     parser.add_argument("--excel", help="Excel 文件路径（也可用环境变量 EXCEL_PATH）", default=None)
@@ -274,29 +304,7 @@ if __name__ == "__main__":
     if args.dry_run or dry:
         # 仅校验 Excel 读取与列映射，不连库
         excel_path = args.excel or EXCEL_PATH
-        df = pd.read_excel(excel_path, sheet_name=0, engine="openpyxl")
-        def norm_excel(s):
-            return "".join(str(s).split())
-        use_cols = []
-        rename = {}
-        for c in df.columns:
-            sc = str(c).strip()
-            if sc in EXCEL_TO_DB:
-                use_cols.append(c)
-                rename[c] = EXCEL_TO_DB[sc]
-            else:
-                nc = norm_excel(c)
-                for k, v in EXCEL_TO_DB.items():
-                    if norm_excel(k) == nc:
-                        use_cols.append(c)
-                        rename[c] = v
-                        break
-        data = df[use_cols].rename(columns=rename)
-        if "impact_score" in data.columns:
-            data["historical_impact"] = data["impact_score"].map(
-                lambda x: (_to_decimal_or_none(x) * 10) if _to_decimal_or_none(x) is not None else None
-            )
-        data = data[[c for c in DB_COLS if c in data.columns]]
+        data = load_excel_data(excel_path)
         print("--dry-run: 列数=%d, 行数=%d" % (len(data.columns), len(data)))
         print("列名:", list(data.columns))
         sys.exit(0)
