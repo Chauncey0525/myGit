@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>营销活动对回流的影响报告</title>
+<style>
+  :root {
+    --blue: #2563EB;
+    --blue-light: #EFF6FF;
+    --teal: #0D9488;
+    --teal-light: #F0FDFA;
+    --amber: #D97706;
+    --amber-light: #FFFBEB;
+    --green: #16A34A;
+    --green-light: #F0FDF4;
+    --purple: #7C3AED;
+    --purple-light: #F5F3FF;
+    --red: #DC2626;
+    --red-light: #FEF2F2;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-800: #1F2937;
+    --gray-900: #111827;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--gray-100);
+    color: var(--gray-800);
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  .slide-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .slide {
+    display: none;
+    width: 1100px;
+    height: 680px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    padding: 48px 56px 40px;
+    position: relative;
+    overflow: hidden;
+    flex-direction: column;
+  }
+
+  .slide.active { display: flex; }
+
+  .slide::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+  }
+
+  .slide.topic-cover::before { background: var(--gray-700); }
+  .slide.topic-1::before { background: var(--blue); }
+  .slide.topic-2::before { background: var(--teal); }
+  .slide.topic-3::before { background: var(--amber); }
+  .slide.topic-4::before { background: var(--green); }
+  .slide.topic-transition::before { background: linear-gradient(90deg, var(--blue), var(--teal), var(--amber), var(--green)); }
+
+  .page-number {
+    position: absolute;
+    top: 16px; right: 24px;
+    font-size: 13px;
+    color: var(--gray-400);
+  }
+
+  .slide-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  .slide-subtitle {
+    font-size: 15px;
+    color: var(--gray-500);
+    margin-bottom: 24px;
+  }
+
+  .highlight { color: var(--blue); }
+  .highlight-teal { color: var(--teal); }
+  .highlight-amber { color: var(--amber); }
+  .highlight-green { color: var(--green); }
+  .highlight-red { color: var(--red); }
+  .highlight-purple { color: var(--purple); }
+
+  .tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .tag-blue { background: var(--blue-light); color: var(--blue); }
+  .tag-teal { background: var(--teal-light); color: var(--teal); }
+  .tag-amber { background: var(--amber-light); color: var(--amber); }
+  .tag-green { background: var(--green-light); color: var(--green); }
+  .tag-red { background: var(--red-light); color: var(--red); }
+  .tag-purple { background: var(--purple-light); color: var(--purple); }
+
+  .cards { display: flex; gap: 16px; flex-wrap: wrap; }
+  .card {
+    flex: 1;
+    min-width: 200px;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 20px;
+    transition: box-shadow 0.2s;
+  }
+  .card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .card-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .card-value { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+  .card-desc { font-size: 13px; color: var(--gray-500); line-height: 1.5; }
+
+  .info-box {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-top: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .info-blue { background: var(--blue-light); border-left: 4px solid var(--blue); }
+  .info-amber { background: var(--amber-light); border-left: 4px solid var(--amber); }
+  .info-green { background: var(--green-light); border-left: 4px solid var(--green); }
+  .info-red { background: var(--red-light); border-left: 4px solid var(--red); }
+  .info-teal { background: var(--teal-light); border-left: 4px solid var(--teal); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 12px;
+  }
+  th {
+    background: var(--gray-50);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--gray-200);
+    font-size: 13px;
+    color: var(--gray-600);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--gray-100);
+    line-height: 1.5;
+  }
+
+  .flex-content { display: flex; gap: 24px; flex: 1; }
+  .flex-content > div { flex: 1; }
+
+  .list-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .list-icon {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .agenda-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    transition: transform 0.2s;
+  }
+  .agenda-item:hover { transform: translateX(4px); }
+  .agenda-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0;
+  }
+  .agenda-text { font-size: 15px; font-weight: 600; }
+  .agenda-desc { font-size: 13px; color: var(--gray-500); margin-top: 2px; }
+
+  .bar-chart { margin-top: 8px; }
+  .bar-row { display: flex; align-items: center; margin-bottom: 10px; }
+  .bar-label { width: 80px; font-size: 13px; font-weight: 600; text-align: right; padding-right: 12px; }
+  .bar-track { flex: 1; height: 28px; background: var(--gray-100); border-radius: 6px; position: relative; }
+  .bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; font-size: 12px; font-weight: 700; color: #fff; transition: width 0.6s; }
+  .bar-value { margin-left: 10px; font-size: 13px; font-weight: 700; }
+
+  .transition-slide {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .transition-num { font-size: 64px; font-weight: 800; opacity: 0.1; margin-bottom: -16px; }
+  .transition-title { font-size: 32px; font-weight: 800; }
+  .transition-desc { font-size: 16px; color: var(--gray-500); margin-top: 12px; }
+
+  .nav {
+    position: fixed;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 100;
+  }
+  .nav-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--gray-200);
+    background: #fff;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--gray-600);
+    transition: all 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .nav-btn:hover { background: var(--gray-50); border-color: var(--gray-400); }
+  .nav-page { font-size: 12px; color: var(--gray-400); font-weight: 600; }
+  .content-area { flex: 1; display: flex; flex-direction: column; }
+
+  .down-arrow { color: var(--red); font-weight: 800; }
+  .up-arrow { color: var(--green); font-weight: 800; }
+
+  .small-text { font-size: 12px; color: var(--gray-400); }
+  .mt-8 { margin-top: 8px; }
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .mb-8 { margin-bottom: 8px; }
+  .mb-16 { margin-bottom: 16px; }
+  .bold { font-weight: 700; }
+  .text-sm { font-size: 13px; }
+  .text-base { font-size: 15px; line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<div class="slide-container">
+
+<!-- Slide 1: 封面 -->
+<div class="slide active topic-cover" id="slide-1">
+  <div class="page-number"><span id="current-page">1</span> / <span id="total-pages"></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <span class="tag tag-blue">用户体验中心</span>
+      <span class="tag tag-teal">O2体验 · 源体验组</span>
+    </div>
+    <div class="slide-title" style="font-size:36px;margin-bottom:8px;">
+      营销活动对<span class="highlight">回流用户</span>的影响报告
+    </div>
+    <div class="slide-subtitle" style="font-size:17px;margin-bottom:36px;">分析不同营销策略的回流效果，寻找可持续的用户回流增长路径</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="agenda-item">
+        <div class="agenda-num" style="background:var(--blue);">1</div>
+        <div><div class="agenda-text">回流大盘现状</div><div class="agenda-desc">总体趋势下滑，营销作用局部提升</div></div>
+      </div>
+      <div class="agenda-item">
+        <div class="agenda-num" style="background:var(--teal);">2</div>
+        <div><div class="agenda-text">各类活动效果分析</div><div class="agenda-desc">福利、资料片、周年庆、社交召回、触达的分类评估</div></div>
+      </div>
+      <div class="agenda-item">
+        <div class="agenda-num" style="background:var(--amber);">3</div>
+        <div><div class="agenda-text">核心问题与隐忧</div><div class="agenda-desc">容易回流的用户在减少，回流质量与数量错配</div></div>
+      </div>
+      <div class="agenda-item">
+        <div class="agenda-num" style="background:var(--green);">4</div>
+        <div><div class="agenda-text">行动计划</div><div class="agenda-desc">短期（1-3月）、中期（4-6月）、长期（7-12月）落地方案</div></div>
+      </div>
+    </div>
+    <div style="margin-top:24px;font-size:13px;color:var(--gray-400);">
+      报告人：张驰欣 &nbsp;|&nbsp; 日期：2026-03-24 &nbsp;|&nbsp; 数据周期：2023-01 至 2025-12
+    </div>
+  </div>
+</div>
+
+<!-- Slide 2: 过渡页 - 议题一 -->
+<div class="slide topic-1" id="slide-2">
+  <div class="page-number"></div>
+  <div class="transition-slide" style="flex:1;">
+    <div class="transition-num" style="color:var(--blue);">01</div>
+    <div class="transition-title" style="color:var(--blue);">回流大盘现状</div>
+    <div class="transition-desc">回流大盘持续下滑，营销的作用更像局部提升，而非扭转大盘</div>
+  </div>
+</div>
+
+<!-- Slide 3: 回流趋势总览 -->
+<div class="slide topic-1" id="slide-3">
+  <div class="page-number"></div>
+  <span class="tag tag-blue">议题一 · 回流大盘</span>
+  <div class="slide-title">回流大盘持续下滑，<span class="highlight-red">营销无法扭转总体趋势</span></div>
+  <div class="slide-subtitle">2023-2025三年日均回流UV逐年递减</div>
+  <div class="content-area">
+    <div class="cards">
+      <div class="card" style="border-top:3px solid var(--blue);">
+        <div class="card-desc">2023年日均回流UV</div>
+        <div class="card-value" style="color:var(--blue);">14,661</div>
+        <div class="card-desc">基准年</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--amber);">
+        <div class="card-desc">2024年日均回流UV</div>
+        <div class="card-value" style="color:var(--amber);">12,486</div>
+        <div class="card-desc"><span class="down-arrow">↓ 14.8%</span> 较2023</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--red);">
+        <div class="card-desc">2025年日均回流UV</div>
+        <div class="card-value" style="color:var(--red);">11,741</div>
+        <div class="card-desc"><span class="down-arrow">↓ 6.0%</span> 较2024</div>
+      </div>
+    </div>
+    <div class="info-box info-blue mt-16">
+      <strong>关键信号：</strong>优先UV 1+UV的回流类型从 <strong>3天 → 38天 → 87天</strong>，显著下移。<br>
+      说明回流整体在衰退，营销活动能带来单月提升，但无法改变总体下行趋势。目标是在衰退背景下做到提升、稳定和局部增长。
+    </div>
+  </div>
+</div>
+
+<!-- Slide 4: 福利类活动 -->
+<div class="slide topic-1" id="slide-4">
+  <div class="page-number"></div>
+  <span class="tag tag-blue">议题一 · 活动类型</span>
+  <div class="slide-title">福利类活动是目前<span class="highlight-green">最稳定、最有效</span>的回流抓手</div>
+  <div class="slide-subtitle">春节福利活动效果显著，福利召回占比全年最高</div>
+  <div class="content-area">
+    <div class="cards">
+      <div class="card">
+        <div class="card-title" style="color:var(--green);">春节福利效果</div>
+        <div class="card-value" style="color:var(--green);">+25.6%</div>
+        <div class="card-desc">2025年2月回流提升</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--teal);">端午+六一</div>
+        <div class="card-value" style="color:var(--teal);">+19.2%</div>
+        <div class="card-desc">2025年端午活动回流提升</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--blue);">福利召回占比</div>
+        <div class="card-value" style="color:var(--blue);">11.5%</div>
+        <div class="card-desc">全年最高（常规8.6%~9.1%）</div>
+      </div>
+    </div>
+    <div class="info-box info-green mt-16">
+      <strong>为什么有效？</strong>春节等节点本身是天然高回流窗口，叠加福利更容易打动本来就有一点回流意愿的用户。<br>
+      福利类活动结合了"节日回忆 + 福利刺激 + 社交召回"的多因素叠加，是有效承接回流KPI的手段。
+    </div>
+  </div>
+</div>
+
+<!-- Slide 5: 资料片效果递减 -->
+<div class="slide topic-2" id="slide-5">
+  <div class="page-number"></div>
+  <span class="tag tag-teal">议题二 · 资料片</span>
+  <div class="slide-title">资料片/版本更新<span class="highlight-red">不能单独承担</span>回流目标</div>
+  <div class="slide-subtitle">效果呈连续递减趋势，需要看回流心态转化</div>
+  <div class="content-area">
+    <div class="bar-chart">
+      <div class="bar-row">
+        <div class="bar-label">2023年</div>
+        <div class="bar-track"><div class="bar-fill" style="width:55%;background:var(--green);">+0.9%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">2024年</div>
+        <div class="bar-track"><div class="bar-fill" style="width:40%;background:var(--amber);">-1.5%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">2025年</div>
+        <div class="bar-track"><div class="bar-fill" style="width:20%;background:var(--red);">-8.8%</div></div>
+      </div>
+    </div>
+    <div class="flex-content mt-16">
+      <div class="info-box info-teal" style="flex:1;margin-top:0;">
+        <strong>积极信号：</strong><br>
+        2025年6月 活动/玩法回流召回占比升至 <strong>10.5%</strong><br>
+        2025年7月 进一步升至 <strong>11.1%</strong>（全年最高）<br>
+        说明玩家对新内容的感知在增强
+      </div>
+      <div class="info-box info-red" style="flex:1;margin-top:0;">
+        <strong>但总回流UV仍在下降</strong><br>
+        资料片能吸引一些用户关注和回流，但抬不高留存率、覆盖成本和触达动力<br>
+        资料片更适合承接"内容曝光/版本惊喜"的目标，不宜单独用回流结果评价
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 6: 过渡页 - 周年庆 -->
+<div class="slide topic-2" id="slide-6">
+  <div class="page-number"></div>
+  <span class="tag tag-teal">议题二 · 周年庆</span>
+  <div class="slide-title">2025年周年庆是<span class="highlight-green">值得复用</span>的成功模板</div>
+  <div class="slide-subtitle">关键不只是活动多，是有回流闭环</div>
+  <div class="content-area">
+    <div class="cards mb-16">
+      <div class="card" style="border-top:3px solid var(--gray-300);">
+        <div class="card-desc">2023年周年庆</div>
+        <div class="card-value" style="color:var(--gray-400);">+0.6%</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--amber);">
+        <div class="card-desc">2024年周年庆</div>
+        <div class="card-value" style="color:var(--amber);">-1.8%</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--green);">
+        <div class="card-desc">2025年周年庆</div>
+        <div class="card-value" style="color:var(--green);">+27.8%</div>
+        <div class="card-desc">全年最佳 · 评分 3.579</div>
+      </div>
+    </div>
+    <div class="info-box info-green">
+      <strong>2025年成功的关键：</strong>首次形成完整"内容曝光 + 福利刺激 + 社交召回 + 互动转化"闭环。<br>
+      6种手段综合：<strong>短视频 + H5互动 + 竞赛 + 直播 + CG + 并首次加入回流闭环机制</strong><br>
+      后续大型活动应优先复制这种结构，而不是只做内容宣传。
+    </div>
+  </div>
+</div>
+
+<!-- Slide 7: 社交召回 -->
+<div class="slide topic-2" id="slide-7">
+  <div class="page-number"></div>
+  <span class="tag tag-teal">议题二 · 社交召回</span>
+  <div class="slide-title">社交召回是少数能<span class="highlight-teal">直接触达流失场景</span>的营销手段</div>
+  <div class="slide-subtitle">营销大多只能"等"，社交可以主动"拉"</div>
+  <div class="content-area">
+    <div class="flex-content">
+      <div>
+        <div class="text-base mb-16">
+          <div class="list-item"><div class="list-icon" style="background:var(--teal-light);color:var(--teal);">●</div><div>营销影响的回流召回大约只占 <strong>25%</strong></div></div>
+          <div class="list-item"><div class="list-icon" style="background:var(--teal-light);color:var(--teal);">●</div><div>社交驱动"有召唤回来"约占 <strong>10%</strong></div></div>
+          <div class="list-item"><div class="list-icon" style="background:var(--green-light);color:var(--green);">▲</div><div>2025年2月 有召唤回来占比升至 <strong>12.3%</strong>，比常规高约20%</div></div>
+          <div class="list-item"><div class="list-icon" style="background:var(--green-light);color:var(--green);">▲</div><div>2025年7月 有召唤回来也升至 <strong>11.8%</strong>，对应互动类活动</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="info-box info-teal" style="margin-top:0;">
+          <strong>为什么值得继续投入？</strong><br><br>
+          营销大多数手段只能"等"，等用户自己想起来，但社交召回可以直接作用于"有召唤"这个真实流失原因场景。<br><br>
+          互动类、召回类、竞赛类机制更值得持续投入。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 8: 触达效果 -->
+<div class="slide topic-2" id="slide-8">
+  <div class="page-number"></div>
+  <span class="tag tag-teal">议题二 · 触达分析</span>
+  <div class="slide-title">触达在增强，但<span class="highlight-amber">高触达 ≠ 高转化</span></div>
+  <div class="slide-subtitle">中秋期间触达率新高，但实际回流转化平平</div>
+  <div class="content-area">
+    <div class="flex-content">
+      <div>
+        <div class="card mb-8" style="border-left:4px solid var(--green);">
+          <div class="card-title">触达占比趋势</div>
+          <div class="card-value"><span class="up-arrow">38.1% → 41.5%</span></div>
+          <div class="card-desc">触达率在持续攀升，到中秋达全年最高</div>
+        </div>
+        <div class="info-box info-amber" style="margin-top:12px;">
+          <strong>但中秋期间：</strong><br>
+          短视频回流召回仅 8.2% → 8.3% → 7.8%<br>
+          直播回流召回仅 9.8% → 10.3% → 9.5%<br>
+          <strong>基本与平时持平，未形成有效提升</strong>
+        </div>
+      </div>
+      <div>
+        <div class="info-box info-red" style="margin-top:0;">
+          <strong>核心矛盾：</strong><br><br>
+          触达是有效触达渠道，但中秋案例明显看到了"不等于回来了"。<br><br>
+          触达更多作用于"知晓"层面，真正的回流转化还需要"内容 + 福利 + 社交"配合。<br><br>
+          <strong>后续活动必须同时看曝光率和转化率，否则容易只追求"知晓"而忽略"行动"。</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 9: 过渡页 - 议题三 -->
+<div class="slide topic-3" id="slide-9">
+  <div class="page-number"></div>
+  <div class="transition-slide" style="flex:1;">
+    <div class="transition-num" style="color:var(--amber);">03</div>
+    <div class="transition-title" style="color:var(--amber);">核心问题与隐忧</div>
+    <div class="transition-desc">容易回来的玩家越来越少，回流活动效果在递减</div>
+  </div>
+</div>
+
+<!-- Slide 10: 容易回流的玩家在减少 -->
+<div class="slide topic-3" id="slide-10">
+  <div class="page-number"></div>
+  <span class="tag tag-amber">议题三 · 隐忧</span>
+  <div class="slide-title">容易回来的玩家<span class="highlight-red">越来越少</span></div>
+  <div class="slide-subtitle">15-30天短期流失用户——最大回流来源——连续两年萎缩</div>
+  <div class="content-area">
+    <div class="cards mb-16">
+      <div class="card" style="border-top:3px solid var(--amber);">
+        <div class="card-desc">15-30天流失玩家占回流</div>
+        <div class="card-value" style="color:var(--amber);">~37%</div>
+        <div class="card-desc">最大回流来源群体</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--red);">
+        <div class="card-desc">两年累计下降</div>
+        <div class="card-value" style="color:var(--red);">-17.8%</div>
+        <div class="card-desc">每日少约950人</div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--red);">
+        <div class="card-desc">6月该层级较2023年</div>
+        <div class="card-value" style="color:var(--red);">-27.4%</div>
+        <div class="card-desc">5301→4405→3847</div>
+      </div>
+    </div>
+    <div class="info-box info-amber">
+      <strong>⚠️ 这意味着什么？</strong>短流失用户本来是最容易召回的——但这个池子在缩小。<br>
+      未来召回"容易用户"会越来越难，营销策略必须开始触达更深层流失用户的召回方式。
+    </div>
+  </div>
+</div>
+
+<!-- Slide 11: 回流触达偏移 -->
+<div class="slide topic-3" id="slide-11">
+  <div class="page-number"></div>
+  <span class="tag tag-amber">议题三 · 触达偏移</span>
+  <div class="slide-title">回流活动触达<span class="highlight-amber">越来越偏中长期流失用户</span></div>
+  <div class="slide-subtitle">这类用户更难"跟上、留住"，回流活动不仅要拉量，还必须抓质</div>
+  <div class="content-area">
+    <table>
+      <tr><th>时间</th><th>活动</th><th>短期流失占比</th><th>中长期流失占比</th><th>趋势</th></tr>
+      <tr><td>2024-11</td><td>基线期</td><td>40.5%</td><td>—</td><td>—</td></tr>
+      <tr><td>2025-02</td><td>春节回流</td><td>38.5%</td><td>—</td><td><span class="down-arrow">↓ 短期流失占比下降</span></td></tr>
+      <tr><td>2025-08</td><td>周年庆</td><td>—</td><td>33.5%</td><td><span class="up-arrow">↑ 中长期流失占比上升</span></td></tr>
+    </table>
+    <div class="flex-content mt-16">
+      <div class="info-box info-amber" style="margin-top:0;flex:1;">
+        <strong>1-3个月流失</strong><br>
+        19.2% <span class="down-arrow">→ 11.3%</span><br>
+        短期可召回池收缩
+      </div>
+      <div class="info-box info-red" style="margin-top:0;flex:1;">
+        <strong>1-3年流失</strong><br>
+        18.3% <span class="up-arrow" style="color:var(--red);">→ 22.1%</span><br>
+        越来越多是深度流失
+      </div>
+      <div class="info-box info-red" style="margin-top:0;flex:1;">
+        <strong>10年以上</strong><br>
+        11.6% <span class="up-arrow" style="color:var(--red);">→ 14.7%</span><br>
+        极深度流失也在增加
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 12: 回流数量 vs 质量 -->
+<div class="slide topic-3" id="slide-12">
+  <div class="page-number"></div>
+  <span class="tag tag-amber">议题三 · 数量与质量</span>
+  <div class="slide-title">回流数量和回流质量<span class="highlight-red">并不天然一致</span></div>
+  <div class="slide-subtitle">拉回来 ≠ 玩家体验就好，需要分开评估</div>
+  <div class="content-area">
+    <div class="cards mb-16">
+      <div class="card" style="border-left:4px solid var(--red);">
+        <div class="card-title">2024-12 元旦活动</div>
+        <div class="card-desc">回流提升</div>
+        <div class="card-value" style="color:var(--green);font-size:24px;">+31.8%</div>
+        <div class="card-desc">体验评分</div>
+        <div class="card-value" style="color:var(--red);font-size:24px;">3.375</div>
+        <div class="card-desc"><span class="highlight-red">全年最低</span></div>
+      </div>
+      <div class="card" style="border-left:4px solid var(--green);">
+        <div class="card-title">2025-08 周年庆</div>
+        <div class="card-desc">回流提升</div>
+        <div class="card-value" style="color:var(--green);font-size:24px;">+27.8%</div>
+        <div class="card-desc">体验评分</div>
+        <div class="card-value" style="color:var(--green);font-size:24px;">3.579</div>
+        <div class="card-desc"><span class="highlight-green">量质双优</span></div>
+      </div>
+      <div class="card" style="border-left:4px solid var(--blue);">
+        <div class="card-title">2026-03 最新</div>
+        <div class="card-desc">评分</div>
+        <div class="card-value" style="color:var(--blue);font-size:24px;">3.635</div>
+        <div class="card-desc">评分最高，但并非最高回流月</div>
+      </div>
+    </div>
+    <div class="info-box info-amber">
+      <strong>⚠️ 评估活动效果时必须拆成两个指标：</strong>"回流量" 和 "回流质量/体验评分"。<br>
+      否则容易只追求短期拉回而忽略留存和体验质量。
+    </div>
+  </div>
+</div>
+
+<!-- Slide 13: 流失原因错配 -->
+<div class="slide topic-3" id="slide-13">
+  <div class="page-number"></div>
+  <span class="tag tag-amber">议题三 · 结构性错配</span>
+  <div class="slide-title">营销与真实流失原因存在<span class="highlight-red">结构性错配</span></div>
+  <div class="slide-subtitle">Top4 流失原因均为产品本质问题，营销触达无法根治</div>
+  <div class="content-area">
+    <div class="bar-chart">
+      <div class="bar-row">
+        <div class="bar-label" style="width:120px;">玩法太重/太累</div>
+        <div class="bar-track"><div class="bar-fill" style="width:67%;background:var(--red);">26.8%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label" style="width:120px;">消费太高</div>
+        <div class="bar-track"><div class="bar-fill" style="width:63%;background:var(--red);">25.2%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label" style="width:120px;">内容落后</div>
+        <div class="bar-track"><div class="bar-fill" style="width:56%;background:var(--amber);">22.5%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label" style="width:120px;">无新意</div>
+        <div class="bar-track"><div class="bar-fill" style="width:53%;background:var(--amber);">21.2%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label" style="width:120px;">有召唤（社交）</div>
+        <div class="bar-track"><div class="bar-fill" style="width:36%;background:var(--teal);">14.5%</div></div>
+      </div>
+    </div>
+    <div class="info-box info-red mt-16">
+      <strong>核心矛盾：</strong>营销做的是放大机会点，但不能改变产品体验的根本问题。<br>
+      <strong>唯一营销能显著影响的是"有召唤"（14.5%），正因此H5互动在春节期间带来了+25.6%的显著提升。</strong><br>
+      后续如果要提高回流效率，营销和产品必须联动——营销负责拉回，产品负责留住。
+    </div>
+  </div>
+</div>
+
+<!-- Slide 14: 过渡页 - 议题四 -->
+<div class="slide topic-4" id="slide-14">
+  <div class="page-number"></div>
+  <div class="transition-slide" style="flex:1;">
+    <div class="transition-num" style="color:var(--green);">04</div>
+    <div class="transition-title" style="color:var(--green);">行动计划</div>
+    <div class="transition-desc">短期快速见效 → 中期体系搭建 → 长期生态闭环</div>
+  </div>
+</div>
+
+<!-- Slide 15: 短期行动 -->
+<div class="slide topic-4" id="slide-15">
+  <div class="page-number"></div>
+  <span class="tag tag-green">议题四 · 短期优化（1-3个月）</span>
+  <div class="slide-title">短期：<span class="highlight-green">低成本快速见效</span>的三个抓手</div>
+  <div class="slide-subtitle">通过轻量化互动降低用户回归门槛</div>
+  <div class="content-area">
+    <div class="cards">
+      <div class="card" style="border-top:3px solid var(--blue);">
+        <div class="card-title" style="color:var(--blue);">内容可视化营销</div>
+        <div class="card-desc" style="font-size:14px;line-height:1.6;">
+          · 制作"更新前后对比H5"，周共享30次，每周耗时约2小时<br>
+          · 推出"新手变好玩家"挑战：在线时长<2小时/天可得福利+双倍经验<br>
+          · 流失3天自动推送日常互动，直接体验核心玩法
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--amber);">
+        <div class="card-title" style="color:var(--amber);">装备经济奖励</div>
+        <div class="card-desc" style="font-size:14px;line-height:1.6;">
+          · 充值活动奖励重构：增加"鎏金宝石、悲欢D资格"等半稀缺品<br>
+          · 回流祈愿体系加入"专属回流召唤兽"，如怀旧版神兽<br>
+          · 推出"成长金"：回流玩家首周充值50元送7天累积200元等价奖励
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--purple);">
+        <div class="card-title" style="color:var(--purple);">新派"神工"联动</div>
+        <div class="card-desc" style="font-size:14px;line-height:1.6;">
+          · 中秋第三季度以"神工派驾到"为主题，结合游戏"宝地"场景<br>
+          · 短视频系列"神工五大拆解术"，邀请大神主演示范<br>
+          · 回流专属：回流用户可免费体验神工派7天
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 16: 中期行动 -->
+<div class="slide topic-4" id="slide-16">
+  <div class="page-number"></div>
+  <span class="tag tag-green">议题四 · 中期优化（4-6个月）</span>
+  <div class="slide-title">中期：<span class="highlight-green">解决核心痛点</span>的系统性方案</div>
+  <div class="slide-subtitle">从产品和社交两个维度降低流失、提升黏性</div>
+  <div class="content-area">
+    <div class="flex-content">
+      <div class="card" style="border-top:3px solid var(--teal);flex:1;">
+        <div class="card-title" style="color:var(--teal);">副本难度梯度改造</div>
+        <div class="card-desc text-base">
+          · "水漫金山"副本分级：<br>
+          &nbsp;&nbsp;入门级→装备要求低，奖励经验为主<br>
+          &nbsp;&nbsp;挑战级→正常难度，奖励"玩家碎片"<br>
+          &nbsp;&nbsp;巅峰级→高强度，奖励"鎏金宝石悲欢D资格"<br>
+          · 经验配置优化：最优配置+回流玩家专属加速等待时间≤3分钟
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--purple);flex:1;">
+        <div class="card-title" style="color:var(--purple);">数值追赶机制 + 社交召2.0</div>
+        <div class="card-desc text-base">
+          · "年度追赶经验系"：回流玩家根据流失时长获得"年度追赶进度"（最高3年）<br>
+          · 神兽追赶：流失6-12个月→"年"级D资深宠培养（5级）<br>
+          · "召回结伴计划"：A邀请B回流，A得现金奖励+B得回流祈愿<br>
+          · "回流玩家专属社群"：由玩家实际运营，组织"周末副本团"
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 17: 长期行动 -->
+<div class="slide topic-4" id="slide-17">
+  <div class="page-number"></div>
+  <span class="tag tag-green">议题四 · 长期优化（7-12个月）</span>
+  <div class="slide-title">长期：<span class="highlight-green">生态闭环</span>与深度绑定</div>
+  <div class="slide-subtitle">资料片绑定营销 + 怀旧计划 + 线下联动升级</div>
+  <div class="content-area">
+    <div class="cards">
+      <div class="card" style="border-top:3px solid var(--blue);">
+        <div class="card-title" style="color:var(--blue);">资料片与营销深度绑定</div>
+        <div class="card-desc text-base">
+          · 资料片上线前提前1个月中秋/短视频深度解析新玩法<br>
+          · 资料片上线周推出"回流专属副本体验"，由玩家带队体验新内容<br>
+          · 资料片稳定期（上线1个月后）根据玩家反馈推出"优化更新版"营销活动
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--amber);">
+        <div class="card-title" style="color:var(--amber);">怀旧营销2.0 "时光逆流"</div>
+        <div class="card-desc text-base">
+          · 开发"时光逆流"系统：玩家可回溯游戏各个时刻，多次帮助胜利、获得分红坊<br>
+          · 推出"玩家故事短剧集"：征集真实玩家故事，改为动画短片<br>
+          · "怀旧服务器"概率性保留经典版本，如2010年版
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--teal);">
+        <div class="card-title" style="color:var(--teal);">线下联动升级 "大话江湖记"</div>
+        <div class="card-desc text-base">
+          · 开发"大话江湖记"线下地图，整合游戏场景与真实地点<br>
+          · AR玩法：线下打卡真实地点↔游戏内宝地场景奖励<br>
+          · "城市挑战"在全国12个城市举办线下竞赛
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 18: 行动清单 -->
+<div class="slide topic-4" id="slide-18">
+  <div class="page-number"></div>
+  <span class="tag tag-green">议题四 · 落地跟踪</span>
+  <div class="slide-title">行动清单与<span class="highlight-green">责任分工</span></div>
+  <div class="slide-subtitle">分三阶段推进，每阶段有明确产出和负责人</div>
+  <div class="content-area">
+    <table>
+      <tr><th>序号</th><th>行动项</th><th>时间要求</th><th>负责人</th></tr>
+      <tr><td>1</td><td>内容可视化营销（H5对比 + 新手挑战）</td><td>1-3个月</td><td>营销组</td></tr>
+      <tr><td>2</td><td>装备经济奖励体系重构</td><td>1-3个月</td><td>策划+营销</td></tr>
+      <tr><td>3</td><td>新派"神工"联动活动上线</td><td>1-3个月</td><td>内容+运营</td></tr>
+      <tr><td>4</td><td>副本难度梯度改造</td><td>4-6个月</td><td>策划组</td></tr>
+      <tr><td>5</td><td>数值追赶机制 + 社交召2.0</td><td>4-6个月</td><td>产品+运营</td></tr>
+      <tr><td>6</td><td>资料片与营销深度绑定方案</td><td>7-12个月</td><td>全团队</td></tr>
+      <tr><td>7</td><td>怀旧营销2.0 "时光逆流"系统</td><td>7-12个月</td><td>研发+营销</td></tr>
+      <tr><td>8</td><td>线下联动升级 "大话江湖记"</td><td>7-12个月</td><td>市场+运营</td></tr>
+    </table>
+    <div class="info-box info-green mt-12">
+      <strong>核心原则：</strong>以用户痛点为核心，数据驱动活动优化。通过系统性解决方案实现用户回流质量与规模的双重提升，在解决用户痛点的同时，实现回流用户规模与质量的同步增长。
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- 翻页导航 -->
+<div class="nav">
+  <button class="nav-btn" onclick="prevSlide()">▲</button>
+  <div class="nav-page" id="nav-page">1/18</div>
+  <button class="nav-btn" onclick="nextSlide()">▼</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let current = 0;
+  const total = slides.length;
+
+  document.getElementById('total-pages').textContent = total;
+  updatePage();
+
+  function showSlide(n) {
+    slides[current].classList.remove('active');
+    current = (n + total) % total;
+    slides[current].classList.add('active');
+    updatePage();
+  }
+
+  function nextSlide() { showSlide(current + 1); }
+  function prevSlide() { showSlide(current - 1); }
+
+  function updatePage() {
+    const p = current + 1;
+    document.getElementById('nav-page').textContent = p + '/' + total;
+    document.querySelectorAll('.page-number').forEach(el => {
+      el.textContent = p + ' / ' + total;
+    });
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prevSlide(); }
+  });
+</script>
+</body>
+</html>

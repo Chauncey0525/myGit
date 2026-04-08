@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "meeting-ppt-creator-skill": {
+      "source": "api/git/@meeting-ppt-creator-skill",
+      "sourceType": "git",
+      "computedHash": "3f7f9d3d09e86de0cc171989cfb9a0f5bc3d2f4ee617714dcae6bc885eb21ae4"
+    }
+  }
+}
